@@ -76,7 +76,13 @@ export default function SurfaceAreaForm(props) {
   );
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit && onSubmit(e);
+      }}
+      className="space-y-6"
+    >
       <Header />
 
       {/* Structure Type */}
@@ -119,8 +125,17 @@ export default function SurfaceAreaForm(props) {
                 step="any"
                 min="0"
                 inputMode="decimal"
-                value={inputs.diameter || ""}
-                onChange={(e) => onChangeInput("diameter", e.target.value)}
+                name="diameter"
+                defaultValue={inputs.diameter || ""}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || ["-", "+", "e", "E"].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = (e.clipboardData || window.clipboardData).getData("text");
+                  if (/^-/.test(text)) e.preventDefault();
+                }}
                 className={inputCls}
                 placeholder="e.g., 1.2"
                 required
@@ -130,6 +145,7 @@ export default function SurfaceAreaForm(props) {
             <div>
               <Label required>Diameter Unit</Label>
               <select
+                name="unit_diameter"
                 value={units.diameter || "m"}
                 onChange={(e) => onChangeUnit("diameter", e.target.value)}
                 className={inputCls}
@@ -155,8 +171,17 @@ export default function SurfaceAreaForm(props) {
                 step="any"
                 min="0"
                 inputMode="decimal"
-                value={inputs.length || ""}
-                onChange={(e) => onChangeInput("length", e.target.value)}
+                name="length"
+                defaultValue={inputs.length || ""}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || ["-", "+", "e", "E"].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = (e.clipboardData || window.clipboardData).getData("text");
+                  if (/^-/.test(text)) e.preventDefault();
+                }}
                 className={inputCls}
                 placeholder="e.g., 100"
                 required
@@ -166,6 +191,7 @@ export default function SurfaceAreaForm(props) {
             <div>
               <Label required>Length Unit</Label>
               <select
+                name="unit_length"
                 value={units.length || "m"}
                 onChange={(e) => onChangeUnit("length", e.target.value)}
                 className={inputCls}
@@ -192,8 +218,17 @@ export default function SurfaceAreaForm(props) {
                 step="any"
                 min="0"
                 inputMode="decimal"
-                value={inputs.tankHeight || ""}
-                onChange={(e) => onChangeInput("tankHeight", e.target.value)}
+                name="tankHeight"
+                defaultValue={inputs.tankHeight || ""}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || ["-", "+", "e", "E"].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = (e.clipboardData || window.clipboardData).getData("text");
+                  if (/^-/.test(text)) e.preventDefault();
+                }}
                 className={inputCls}
                 placeholder="e.g., 12"
                 required
@@ -208,6 +243,7 @@ export default function SurfaceAreaForm(props) {
             <div>
               <Label required>Tank Height Unit</Label>
               <select
+                name="unit_tankHeight"
                 value={units.tankHeight || "m"}
                 onChange={(e) => onChangeUnit("tankHeight", e.target.value)}
                 className={inputCls}
@@ -230,8 +266,17 @@ export default function SurfaceAreaForm(props) {
                 step="any"
                 min="0"
                 inputMode="decimal"
-                value={inputs.height || ""}
-                onChange={(e) => onChangeInput("height", e.target.value)}
+                name="height"
+                defaultValue={inputs.height || ""}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || ["-", "+", "e", "E"].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  const text = (e.clipboardData || window.clipboardData).getData("text");
+                  if (/^-/.test(text)) e.preventDefault();
+                }}
                 className={inputCls}
                 placeholder="e.g., 8"
                 required
@@ -245,6 +290,7 @@ export default function SurfaceAreaForm(props) {
             <div>
               <Label required>Wetted Height Unit</Label>
               <select
+                name="unit_height"
                 value={units.height || 'm'}
                 onChange={(e) => onChangeUnit('height', e.target.value)}
                 className={inputCls}
@@ -261,8 +307,8 @@ export default function SurfaceAreaForm(props) {
             <div className="md:col-span-2">
               <Label>Include Bottom Plate</Label>
               <select
-                value={String(inputs.includeBottom ?? true)}
-                onChange={(e) => onChangeInput('includeBottom', e.target.value === 'true')}
+                name="includeBottom"
+                defaultValue={String(inputs.includeBottom ?? true)}
                 className={inputCls}
                 aria-label="Include Bottom Plate"
               >

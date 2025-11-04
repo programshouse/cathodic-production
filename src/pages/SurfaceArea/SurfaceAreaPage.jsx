@@ -26,6 +26,20 @@ export default class SurfaceAreaPage extends React.Component {
     };
   }
 
+  handleBeforeUnload = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem('surface_area_calc');
+      } catch {}
+    }
+  };
+
+  componentDidMount() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', this.handleBeforeUnload);
+    }
+  }
+
   componentDidUpdate(_, prevState) {
     if (prevState !== this.state && typeof window !== 'undefined') {
       const { structureType, inputs, units, results } = this.state;
@@ -33,6 +47,15 @@ export default class SurfaceAreaPage extends React.Component {
         'surface_area_calc',
         JSON.stringify({ structureType, inputs, units, results })
       );
+    }
+  }
+
+  componentWillUnmount() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('beforeunload', this.handleBeforeUnload);
+      try {
+        window.localStorage.removeItem('surface_area_calc');
+      } catch {}
     }
   }
 
@@ -125,26 +148,72 @@ export default class SurfaceAreaPage extends React.Component {
 
   onSubmit = (e) => {
     e.preventDefault();
-    const validationError = this.validate();
+
+    const form = e.target;
+    const fd = new FormData(form);
+    const raw = {
+      diameter: fd.get('diameter'),
+      length: fd.get('length'),
+      tankHeight: fd.get('tankHeight'),
+      height: fd.get('height'),
+      includeBottom: fd.get('includeBottom'),
+    };
+
+    const toNum = (v) => (v === null || v === '' ? '' : Number(v));
+    const submittedInputs = {
+      diameter: toNum(raw.diameter),
+      length: toNum(raw.length),
+      tankHeight: toNum(raw.tankHeight),
+      height: toNum(raw.height),
+      includeBottom: raw.includeBottom === 'true',
+    };
+
+    const { structureType, units } = this.state;
+
+    // Validate using submitted values only
+    const mustBeNumber = (val) => val !== '' && !isNaN(Number(val));
+    let validationError = null;
+    if (!mustBeNumber(submittedInputs.diameter) || Number(submittedInputs.diameter) <= 0) {
+      validationError = 'Please enter a positive numeric diameter.';
+    } else if (structureType === 'pipeline') {
+      if (!mustBeNumber(submittedInputs.length) || Number(submittedInputs.length) <= 0) {
+        validationError = 'Please enter a positive numeric length.';
+      }
+    } else if (structureType === 'tank-internal') {
+      if (!mustBeNumber(submittedInputs.tankHeight) || Number(submittedInputs.tankHeight) <= 0) {
+        validationError = 'Please enter a positive numeric tank height.';
+      } else if (!mustBeNumber(submittedInputs.height) || Number(submittedInputs.height) <= 0) {
+        validationError = 'Please enter a positive numeric wetted height.';
+      } else if (Number(submittedInputs.height) > Number(submittedInputs.tankHeight)) {
+        validationError = 'Wetted height cannot exceed tank height.';
+      }
+    }
+
     if (validationError) {
       this.setError(validationError);
       return;
     }
+
     this.clearError();
 
     this.setState({ submitting: true }, () => {
       try {
-        const { structureType, inputs, units } = this.state;
-        const diameter_m = toMeters(Number(inputs.diameter), units.diameter);
+        // Persist submitted values to state only on submit
+        this.setState({ inputs: { ...this.state.inputs, ...submittedInputs } });
+
+        const diameter_m = toMeters(Number(submittedInputs.diameter), units.diameter);
 
         if (structureType === 'pipeline') {
-          const length_m = toMeters(Number(inputs.length), units.length);
+          const length_m = toMeters(Number(submittedInputs.length), units.length);
           const area_m2 = pipelineSurfaceArea({ diameter_m, length_m });
           this.setState({ results: { area_m2 } });
         } else if (structureType === 'tank-internal') {
-          const height_m = toMeters(Number(inputs.height), units.height);
-          const includeBottom = Boolean(inputs.includeBottom);
-          const r = internalTankSurfaceArea({ diameter_m, height_m, includeBottom });
+          const height_m = toMeters(Number(submittedInputs.height), units.height);
+          const r = internalTankSurfaceArea({
+            diameter_m,
+            height_m,
+            includeBottom: Boolean(submittedInputs.includeBottom),
+          });
           this.setState({ results: r });
         } else if (structureType === 'tank-external-bottom') {
           const area_m2 = externalTankBottomAreaFlat({ diameter_m });

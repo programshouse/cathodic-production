@@ -37,7 +37,7 @@ export function pipelineSurfaceArea({ diameter_m, length_m }) {
   return PI * diameter_m * length_m;
 }
 
-export function internalTankSurfaceArea({ diameter_m, height_m }) {
+export function internalTankSurfaceArea({ diameter_m, height_m, includeBottom = true }) {
   // Ashell = PI * D * h
   // Abottom = PI * r^2 (r = D/2)
   const r = diameter_m / 2;
@@ -46,7 +46,7 @@ export function internalTankSurfaceArea({ diameter_m, height_m }) {
   return {
     Ashell,
     Abottom,
-    Atotal: Ashell + Abottom,
+    Atotal: includeBottom ? (Ashell + Abottom) : Ashell,
   };
 }
 

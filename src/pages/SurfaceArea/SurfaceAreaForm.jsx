@@ -20,6 +20,7 @@ export default function SurfaceAreaForm(props) {
     onSubmit,
     submitting,
     headerActions,
+    errors = {},
   } = props;
 
   const inputCls = [
@@ -54,9 +55,7 @@ export default function SurfaceAreaForm(props) {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
           )}
         </div>
-        {actions ? (
-          <div className="flex items-center gap-2">{actions}</div>
-        ) : null}
+        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </div>
       {children}
     </div>
@@ -68,7 +67,9 @@ export default function SurfaceAreaForm(props) {
         <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-brand-400 opacity-90" />
         <div className="relative px-5 py-5 md:px-7 md:py-6">
           <h2 className="text-white text-xl md:text-2xl font-semibold tracking-tight">Surface Area Calculator</h2>
-          <p className="text-brand-50/90 text-sm md:text-base mt-1">Select the structure type and enter dimensions with units. All fields marked * are required.</p>
+          <p className="text-brand-50/90 text-sm md:text-base mt-1">
+            Select the structure type and enter dimensions with units. All fields marked * are required.
+          </p>
         </div>
       </div>
     </div>
@@ -79,7 +80,11 @@ export default function SurfaceAreaForm(props) {
       <Header />
 
       {/* Structure Type */}
-      <SectionCard title="Structure Type" subtitle="Choose the geometry you want to calculate for." actions={headerActions}>
+      <SectionCard
+        title="Structure Type"
+        subtitle="Choose the geometry you want to calculate for."
+        actions={headerActions}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label required>Select Structure Type</Label>
@@ -91,7 +96,9 @@ export default function SurfaceAreaForm(props) {
               required
             >
               {STRUCTURE_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
               ))}
             </select>
             <Help>Pipeline, tank internal (wetted shell), or external bottom plate.</Help>
@@ -101,8 +108,10 @@ export default function SurfaceAreaForm(props) {
 
       {/* Parameters */}
       <SectionCard title="Input Parameters" subtitle="Provide dimensions and select their units.">
-        {(structureType === 'pipeline' || structureType === 'tank-internal' || structureType === 'tank-external-bottom') && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {(structureType === "pipeline" ||
+          structureType === "tank-internal" ||
+          structureType === "tank-external-bottom") && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label required>Diameter</Label>
               <input
@@ -110,11 +119,8 @@ export default function SurfaceAreaForm(props) {
                 step="any"
                 min="0"
                 inputMode="decimal"
-                value={inputs.diameter || ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '' || Number(v) >= 0) onChangeInput('diameter', v);
-                }}
+                value={inputs.diameter || ""}
+                onChange={(e) => onChangeInput("diameter", e.target.value)}
                 className={inputCls}
                 placeholder="e.g., 1.2"
                 required
@@ -124,21 +130,23 @@ export default function SurfaceAreaForm(props) {
             <div>
               <Label required>Diameter Unit</Label>
               <select
-                value={units.diameter || 'm'}
-                onChange={(e) => onChangeUnit('diameter', e.target.value)}
+                value={units.diameter || "m"}
+                onChange={(e) => onChangeUnit("diameter", e.target.value)}
                 className={inputCls}
                 aria-label="Diameter Unit"
                 required
               >
                 {LENGTH_UNITS.map((u) => (
-                  <option key={u} value={u}>{u}</option>
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
         )}
 
-        {structureType === 'pipeline' && (
+        {structureType === "pipeline" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div>
               <Label required>Length</Label>
@@ -147,11 +155,8 @@ export default function SurfaceAreaForm(props) {
                 step="any"
                 min="0"
                 inputMode="decimal"
-                value={inputs.length || ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '' || Number(v) >= 0) onChangeInput('length', v);
-                }}
+                value={inputs.length || ""}
+                onChange={(e) => onChangeInput("length", e.target.value)}
                 className={inputCls}
                 placeholder="e.g., 100"
                 required
@@ -161,22 +166,63 @@ export default function SurfaceAreaForm(props) {
             <div>
               <Label required>Length Unit</Label>
               <select
-                value={units.length || 'm'}
-                onChange={(e) => onChangeUnit('length', e.target.value)}
+                value={units.length || "m"}
+                onChange={(e) => onChangeUnit("length", e.target.value)}
                 className={inputCls}
                 aria-label="Length Unit"
                 required
               >
                 {LENGTH_UNITS.map((u) => (
-                  <option key={u} value={u}>{u}</option>
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
         )}
 
-        {structureType === 'tank-internal' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        {structureType === "tank-internal" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {/* Tank Height + Unit (two cells, standard widths) */}
+            <div>
+              <Label required>Tank Height</Label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                inputMode="decimal"
+                value={inputs.tankHeight || ""}
+                onChange={(e) => onChangeInput("tankHeight", e.target.value)}
+                className={inputCls}
+                placeholder="e.g., 12"
+                required
+              />
+              <Help>Total internal tank height.</Help>
+              {errors.tankHeight ? (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {errors.tankHeight}
+                </p>
+              ) : null}
+            </div>
+            <div>
+              <Label required>Tank Height Unit</Label>
+              <select
+                value={units.tankHeight || "m"}
+                onChange={(e) => onChangeUnit("tankHeight", e.target.value)}
+                className={inputCls}
+                aria-label="Tank Height Unit"
+                required
+              >
+                {LENGTH_UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Wetted Height + Unit (one line, same widths as others) */}
             <div>
               <Label required>Wetted Height</Label>
               <input
@@ -184,30 +230,46 @@ export default function SurfaceAreaForm(props) {
                 step="any"
                 min="0"
                 inputMode="decimal"
-                value={inputs.height || ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '' || Number(v) >= 0) onChangeInput('height', v);
-                }}
+                value={inputs.height || ""}
+                onChange={(e) => onChangeInput("height", e.target.value)}
                 className={inputCls}
                 placeholder="e.g., 8"
                 required
+                aria-label="Wetted Height"
               />
               <Help>Liquid contact height inside the tank.</Help>
+              {errors.height ? (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.height}</p>
+              ) : null}
             </div>
             <div>
-              <Label required>Height Unit</Label>
+              <Label required>Wetted Height Unit</Label>
               <select
                 value={units.height || 'm'}
                 onChange={(e) => onChangeUnit('height', e.target.value)}
                 className={inputCls}
-                aria-label="Height Unit"
+                aria-label="Wetted Height Unit"
                 required
               >
                 {LENGTH_UNITS.map((u) => (
                   <option key={u} value={u}>{u}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Include Bottom full-width */}
+            <div className="md:col-span-2">
+              <Label>Include Bottom Plate</Label>
+              <select
+                value={String(inputs.includeBottom ?? true)}
+                onChange={(e) => onChangeInput('includeBottom', e.target.value === 'true')}
+                className={inputCls}
+                aria-label="Include Bottom Plate"
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+              <Help>Include the bottom plate area in the total.</Help>
             </div>
           </div>
         )}
@@ -222,14 +284,32 @@ export default function SurfaceAreaForm(props) {
         >
           {submitting ? (
             <>
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+              <svg
+                className="h-4 w-4 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
               Calculating...
             </>
           ) : (
             <>Calculate Surface Area</>
           )}
         </button>
-        {/* <span className="text-xs text-gray-500 dark:text-gray-400">All calculations use your selected units.</span> */}
       </div>
     </form>
   );

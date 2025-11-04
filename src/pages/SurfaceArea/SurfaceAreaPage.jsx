@@ -17,8 +17,8 @@ export default class SurfaceAreaPage extends React.Component {
 
     this.state = parsed || {
       structureType: STRUCTURE_TYPES[0].value,
-      inputs: { diameter: "", length: "", height: "" },
-      units: { diameter: "m", length: "m", height: "m" },
+      inputs: { diameter: "", length: "", tankHeight: "", height: "", includeBottom: true },
+      units: { diameter: "m", length: "m", tankHeight: "m", height: "m" },
       submitting: false,
       results: null,
       error: null,
@@ -62,7 +62,7 @@ export default class SurfaceAreaPage extends React.Component {
 
   isFieldRequired(structureType, field) {
     if (structureType === 'pipeline') return field === 'diameter' || field === 'length';
-    if (structureType === 'tank-internal') return field === 'diameter' || field === 'height';
+    if (structureType === 'tank-internal') return field === 'diameter' || field === 'tankHeight' || field === 'height';
     if (structureType === 'tank-external-bottom') return field === 'diameter';
     return false;
   }
@@ -72,6 +72,16 @@ export default class SurfaceAreaPage extends React.Component {
     if (value === '' || value === null || value === undefined) return 'Enter this field';
     const n = Number(value);
     if (isNaN(n) || n <= 0) return 'Enter a positive number';
+    if (structureType === 'tank-internal') {
+      if (field === 'height') {
+        const th = Number((this.state.inputs && this.state.inputs.tankHeight) || 0);
+        if (th > 0 && n > th) return 'Wetted height must be ≤ tank height';
+      }
+      if (field === 'tankHeight') {
+        const h = Number((this.state.inputs && this.state.inputs.height) || 0);
+        if (h > 0 && h > n) return 'Tank height must be ≥ wetted height';
+      }
+    }
     return null;
   }
 
@@ -79,6 +89,7 @@ export default class SurfaceAreaPage extends React.Component {
     return {
       diameter: this.validateField(structureType, 'diameter', inputs.diameter),
       length: this.validateField(structureType, 'length', inputs.length),
+      tankHeight: this.validateField(structureType, 'tankHeight', inputs.tankHeight),
       height: this.validateField(structureType, 'height', inputs.height),
     };
   }
@@ -98,8 +109,14 @@ export default class SurfaceAreaPage extends React.Component {
     }
 
     if (structureType === 'tank-internal') {
+      if (!mustBeNumber(inputs.tankHeight) || Number(inputs.tankHeight) <= 0) {
+        return "Please enter a positive numeric tank height.";
+      }
       if (!mustBeNumber(inputs.height) || Number(inputs.height) <= 0) {
         return "Please enter a positive numeric wetted height.";
+      }
+      if (Number(inputs.height) > Number(inputs.tankHeight)) {
+        return "Wetted height cannot exceed tank height.";
       }
     }
 
@@ -126,7 +143,8 @@ export default class SurfaceAreaPage extends React.Component {
           this.setState({ results: { area_m2 } });
         } else if (structureType === 'tank-internal') {
           const height_m = toMeters(Number(inputs.height), units.height);
-          const r = internalTankSurfaceArea({ diameter_m, height_m });
+          const includeBottom = Boolean(inputs.includeBottom);
+          const r = internalTankSurfaceArea({ diameter_m, height_m, includeBottom });
           this.setState({ results: r });
         } else if (structureType === 'tank-external-bottom') {
           const area_m2 = externalTankBottomAreaFlat({ diameter_m });
@@ -153,8 +171,8 @@ export default class SurfaceAreaPage extends React.Component {
         units: { diameter: 'm', length: 'm', height: 'm' },
       },
       'tank-internal': {
-        inputs: { diameter: 10, length: '', height: 8 },
-        units: { diameter: 'm', length: 'm', height: 'm' },
+        inputs: { diameter: 10, length: '', tankHeight: 12, height: 8, includeBottom: true },
+        units: { diameter: 'm', length: 'm', tankHeight: 'm', height: 'm' },
       },
       'tank-external-bottom': {
         inputs: { diameter: 12, length: '', height: '' },
@@ -176,8 +194,8 @@ export default class SurfaceAreaPage extends React.Component {
   resetAll = () => {
     this.setState({
       structureType: STRUCTURE_TYPES[0].value,
-      inputs: { diameter: "", length: "", height: "" },
-      units: { diameter: "m", length: "m", height: "m" },
+      inputs: { diameter: "", length: "", tankHeight: "", height: "", includeBottom: true },
+      units: { diameter: "m", length: "m", tankHeight: "m", height: "m" },
       submitting: false,
       results: null,
       error: null,
@@ -312,7 +330,7 @@ Atotal = Ashell + Abottom`}</pre>
         right={(
           <>
             <this.InfoCard />
-            <SurfaceAreaResults structureType={structureType} results={results} onReset={this.resetAll} />
+            <SurfaceAreaResults structureType={structureType} results={results} includeBottom={Boolean(inputs.includeBottom)} onReset={this.resetAll} />
           </>
         )}
       />

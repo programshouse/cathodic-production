@@ -206,14 +206,20 @@ export default class SurfaceAreaResults extends React.Component {
 
     // TANK INTERNAL
     if (structureType === 'tank-internal') {
+      const includeBottom = Boolean(this.props.includeBottom);
       const Ashell = Number(results.Ashell || 0);
       const Abottom = Number(results.Abottom || 0);
       const Atotal = Number(results.Atotal || 0);
-      const data = [
-        { name: 'Ashell', value: toUnit(Ashell) },
-        { name: 'Abottom', value: toUnit(Abottom) },
-        { name: 'Atotal', value: toUnit(Atotal) },
-      ];
+      const data = includeBottom
+        ? [
+            { name: 'Ashell', value: toUnit(Ashell) },
+            { name: 'Abottom', value: toUnit(Abottom) },
+            { name: 'Atotal', value: toUnit(Atotal) },
+          ]
+        : [
+            { name: 'Ashell', value: toUnit(Ashell) },
+            { name: 'Atotal', value: toUnit(Atotal) },
+          ];
       const yMax = this.niceMax(Math.max(...data.map(d => d.value)));
       return (
           <Card>
@@ -230,7 +236,9 @@ export default class SurfaceAreaResults extends React.Component {
               </div>
             </div>
 
-          <div className="mb-3 text-base text-gray-500 dark:text-gray-400">Ashell = π × D × h • Abottom = π × r² • Atotal = Ashell + Abottom</div>
+          <div className="mb-3 text-base text-gray-500 dark:text-gray-400">
+            Ashell = π × D × h • Abottom = π × r² • Atotal = {includeBottom ? 'Ashell + Abottom' : 'Ashell'}
+          </div>
 
           <div className="space-y-2 mb-3">
             <this.BigNumber value={toUnit(Atotal)} unit={unitLabel} copyLabel={`total-${unitLabel}-internal`} />
@@ -240,16 +248,23 @@ export default class SurfaceAreaResults extends React.Component {
 
           <div className="space-y-1">
             <this.Row label="Ashell" value={toUnit(Ashell)} unit={unitLabel} />
-            <this.Row label="Abottom" value={toUnit(Abottom)} unit={unitLabel} />
+            {includeBottom ? (
+              <this.Row label="Abottom" value={toUnit(Abottom)} unit={unitLabel} />
+            ) : (
+              <div className="flex items-center justify-between py-1">
+                <span className="text-gray-600 dark:text-gray-300 text-sm">Abottom</span>
+                <span className="font-semibold text-sm text-gray-400 dark:text-gray-500">Excluded</span>
+              </div>
+            )}
           </div>
           <div className="mt-4">
             <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Visual Representation</h4>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <BarChart data={data} margin={{ top: 8, right: 16, left: 40, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="name" tick={{ fontSize: 14 }} />
-                  <YAxis tick={{ fontSize: 14 }} label={{ value: unitLabel, angle: -90, position: 'insideLeft' }} />
+                  <YAxis domain={[0, yMax]} tick={{ fontSize: 14 }} tickFormatter={(v) => this.fmt(v, 0)} allowDecimals label={{ value: unitLabel, angle: -90, position: 'insideLeft' }} />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="value" name={unitLabel} fill="#3b82f6" radius={[6,6,0,0]} />

@@ -12,7 +12,9 @@ import CalculatorPanel from "../../components/ui/CalculatorPanel";
 export default class SurfaceAreaPage extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {
+    const saved = (typeof window !== 'undefined') ? window.localStorage.getItem('surface_area_calc') : null;
+    const parsed = saved ? JSON.parse(saved) : null;
+    this.state = parsed || {
       structureType: STRUCTURE_TYPES[0].value,
       inputs: { diameter: "", length: "", tankHeight: "", height: "", includeBottom: true },
       units: { diameter: "m", length: "m", tankHeight: "m", height: "m" },
@@ -23,11 +25,14 @@ export default class SurfaceAreaPage extends React.Component {
     };
   }
 
-  // No persistence: allow unmount/navigation to clear form state
-  handleBeforeUnload = () => {};
-  componentDidMount() {}
-  componentDidUpdate() {}
-  componentWillUnmount() {}
+  componentDidUpdate(_, prevState) {
+    if (prevState !== this.state && typeof window !== 'undefined') {
+      const { structureType, inputs, units, results } = this.state;
+      try {
+        window.localStorage.setItem('surface_area_calc', JSON.stringify({ structureType, inputs, units, results }));
+      } catch { void 0; }
+    }
+  }
 
   setError = (msg) => this.setState({ error: msg });
 

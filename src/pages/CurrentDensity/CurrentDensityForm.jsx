@@ -5,12 +5,12 @@ import { Label, Help, Select, NumberInput } from "../../components/ui/FormContro
 import ResetPill from "../../components/ui/ResetPill";
 import PrimaryButton from "../../components/ui/PrimaryButton";
 
-export default function CurrentDensityForm({ onSubmit, submitting, onReset }) {
-  const [env, setEnv] = useState("soil");
-  const [condition, setCondition] = useState("Excellent");
-  const [coatingType, setCoatingType] = useState("");
-  const [temperature, setTemperature] = useState(25);
-  const [moisture, setMoisture] = useState("dry");
+export default function CurrentDensityForm({ onSubmit, submitting, onReset, initialValues = {} }) {
+  const [env, setEnv] = useState(initialValues.environment ?? "soil");
+  const [condition, setCondition] = useState(initialValues.condition ?? "Excellent");
+  const [coatingType, setCoatingType] = useState(initialValues.coatingType ?? "");
+  const [temperature, setTemperature] = useState(initialValues.temperature ?? 25);
+  const [moisture, setMoisture] = useState(initialValues.moisture ?? "dry");
 
   const conditionOptions = useMemo(() => CONDITIONS.map((c) => c.value), []);
   const typesForCondition = useMemo(() => {

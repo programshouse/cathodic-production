@@ -10,12 +10,15 @@ import { TABLES, correctedCurrentDensityAtTemp, applyMoistureFactor } from "./ut
 export default class CurrentDensityPage extends React.Component {
   constructor(props) {
     super(props);
+    const saved = (typeof window !== 'undefined') ? window.localStorage.getItem('current_density_calc') : null;
+    const parsed = saved ? JSON.parse(saved) : null;
     this.state = {
       submitting: false,
-      results: null,
+      results: parsed?.results || null,
       error: null,
       activeTab: "results",
-      selectedEnvironment: "soil",
+      selectedEnvironment: parsed?.inputs?.environment || "soil",
+      savedInputs: parsed?.inputs || null,
     };
   }
 
@@ -50,12 +53,17 @@ export default class CurrentDensityPage extends React.Component {
         if (environment === "soil") {
           jdCorr = applyMoistureFactor(jdCorr, moisture);
         }
+        const results = {
+          range25: range,
+          jdFinal: jdCorr,
+        };
+        const inputs = { environment, condition, coatingType, temperature, moisture };
+        // persist
+        try { window.localStorage.setItem('current_density_calc', JSON.stringify({ inputs, results })); } catch { void 0; }
         this.setState({
-          results: {
-            range25: range,
-            jdFinal: jdCorr,
-          },
+          results,
           selectedEnvironment: environment,
+          savedInputs: inputs,
           activeTab: "results",
         });
       } catch (err) {
@@ -69,7 +77,8 @@ export default class CurrentDensityPage extends React.Component {
   setError = (msg) => this.setState({ error: msg });
 
   onResetAll = () => {
-    this.setState({ results: null, error: null, selectedEnvironment: "soil", activeTab: "results" });
+    try { window.localStorage.removeItem('current_density_calc'); } catch { void 0; }
+    this.setState({ results: null, error: null, selectedEnvironment: "soil", activeTab: "results", savedInputs: null });
   };
   setTab = (key) => this.setState({ activeTab: key });
 
@@ -83,7 +92,7 @@ export default class CurrentDensityPage extends React.Component {
             {error ? (
               <div className="mb-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 px-4 py-3 text-sm">{error}</div>
             ) : null}
-            <CurrentDensityForm onSubmit={this.onSubmit} submitting={submitting} onReset={this.onResetAll} />
+            <CurrentDensityForm onSubmit={this.onSubmit} submitting={submitting} onReset={this.onResetAll} initialValues={this.state.savedInputs || {}} />
           </div>
         )}
         right={(

@@ -19,6 +19,7 @@ import CurrentDensityPage from "./pages/CurrentDensity/CurrentDensityPage";
 import CoatingFactorsPage from "./pages/CoatingFactors/CoatingFactorsPage";
 import GroundbedPage from "./pages/GroundbedResistance/GroundbedPage";
 import CircuitResistancePage from "./pages/CircuitResistance/CircuitResistancePage";
+import GalvanicPage from "./pages/GalvanicAnode/GalvanicPage";
 
 
 // GuestOnlyRoute: only guests (not logged-in)
@@ -42,12 +43,14 @@ const router = createBrowserRouter([
           { path: "/pages/coating-factors", element: <CoatingFactorsPage /> },
           { path: "/pages/groundbed-resistance", element: <GroundbedPage /> },
           { path: "/pages/circuit-resistance", element: <CircuitResistancePage /> },
+          { path: "/pages/galvanic-anode", element: <GalvanicPage /> },
           // Legacy redirects
           { path: "/surface-area", element: <Navigate to="/pages/surface-area" replace /> },
           { path: "/current-density", element: <Navigate to="/pages/current-density" replace /> },
           { path: "/coating-factors", element: <Navigate to="/pages/coating-factors" replace /> },
           { path: "/groundbed-resistance", element: <Navigate to="/pages/groundbed-resistance" replace /> },
           { path: "/circuit-resistance", element: <Navigate to="/pages/circuit-resistance" replace /> },
+          { path: "/galvanic-anode", element: <Navigate to="/pages/galvanic-anode" replace /> },
         ],
   },
   {

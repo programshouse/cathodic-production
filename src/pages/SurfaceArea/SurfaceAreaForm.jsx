@@ -15,11 +15,11 @@ export default function SurfaceAreaForm(props) {
     onChangeType,
     inputs,
     units,
-    onChangeInput,
     onChangeUnit,
     onSubmit,
     submitting,
     headerActions,
+    onReset,
     errors = {},
   } = props;
 
@@ -89,7 +89,20 @@ export default function SurfaceAreaForm(props) {
       <SectionCard
         title="Structure Type"
         subtitle="Choose the geometry you want to calculate for."
-        actions={headerActions}
+        actions={(
+          <>
+            {headerActions}
+            {onReset ? (
+              <button
+                type="button"
+                onClick={onReset}
+                className="text-base px-3 py-1 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 border border-gray-200 dark:border-gray-700"
+              >
+                Reset
+              </button>
+            ) : null}
+          </>
+        )}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

@@ -105,8 +105,8 @@ const AppSidebar = () => {
                 className="dark:hidden rounded-full"
                 src="/images/logo/logoos.jpg"
                 alt="logoos"
-                width={100}
-                height={40}
+                width={140}
+                height={50}
               />
               <img
                 className="hidden dark:block"

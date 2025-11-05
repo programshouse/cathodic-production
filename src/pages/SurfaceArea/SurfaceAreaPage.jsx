@@ -366,11 +366,7 @@ Atotal = Ashell + Abottom`}</pre>
 
     const headerActions = (
       <>
-        <button
-          type="button"
-          className="text-lg rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1 mt-3 hover:bg-gray-50 dark:hover:bg-gray-800"
-          onClick={this.resetAll}
-        >Reset</button>
+
         {/* <button
           type="button"
           className="text-lg rounded-full border border-brand-200 dark:border-brand-800 mt-3 bg-brand-50  dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-3 py-1 hover:opacity-90"
@@ -381,8 +377,6 @@ Atotal = Ashell + Abottom`}</pre>
 
     return (
       <CalculatorPanel
-        // title="Surface Area Calculator"
-        // subtitle="Convert inputs to SI units automatically. Results in m² and ft²."
         headerActions={headerActions}
         left={(
           <SurfaceAreaForm
@@ -396,6 +390,7 @@ Atotal = Ashell + Abottom`}</pre>
             submitting={submitting}
             errors={errors}
             headerActions={headerActions}
+            onReset={this.resetAll}
           />
         )}
         right={(

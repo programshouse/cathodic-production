@@ -5,6 +5,7 @@ import Backdrop from "./Backdrop";
 import AppSidebar from "./AppSidebar";
 import { useAuthStore } from "../stores/useAuthStore";
 import { ToastContainer } from "react-toastify";
+import HeaderBanner from "../components/ui/HeaderBanner";
 
 const ProtectedRoute = ({ children }) => {
   const { access_token } = useAuthStore();
@@ -38,7 +39,8 @@ const LayoutContent = () => {
         } ${isMobileOpen ? "ml-0" : ""}`}
       >
         <AppHeader />
-        <div className="mx-auto">
+        <div className="mx-auto space-y-4">
+          <HeaderBanner />
           <ProtectedRoute>
             <Outlet />
           </ProtectedRoute>

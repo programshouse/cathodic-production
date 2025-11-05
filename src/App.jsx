@@ -15,6 +15,8 @@ import AppLayout from "./layout/AppLayout";
 import Home from "./pages/Dashboard/Home";
 import Form from "./pages/Form";
 import SurfaceAreaPage from "./pages/SurfaceArea/SurfaceAreaPage";
+import CurrentDensityPage from "./pages/CurrentDensity/CurrentDensityPage";
+import CoatingFactorsPage from "./pages/CoatingFactors/CoatingFactorsPage";
 
 
 // GuestOnlyRoute: only guests (not logged-in)
@@ -32,7 +34,14 @@ const router = createBrowserRouter([
   
           { path: "/form", element: <Form /> },
           { path: "/card", element: <Card /> },
-          { path: "/surface-area", element: <SurfaceAreaPage /> },
+          // Canonical: /pages/...
+          { path: "/pages/surface-area", element: <SurfaceAreaPage /> },
+          { path: "/pages/current-density", element: <CurrentDensityPage /> },
+          { path: "/pages/coating-factors", element: <CoatingFactorsPage /> },
+          // Legacy redirects
+          { path: "/surface-area", element: <Navigate to="/pages/surface-area" replace /> },
+          { path: "/current-density", element: <Navigate to="/pages/current-density" replace /> },
+          { path: "/coating-factors", element: <Navigate to="/pages/coating-factors" replace /> },
         ],
   },
   {

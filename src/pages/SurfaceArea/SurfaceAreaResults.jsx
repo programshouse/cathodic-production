@@ -1,5 +1,6 @@
 import React from "react";
 import { m2ToFt2 } from "./utils";
+import ModuleCard from "../../components/ui/ModuleCard";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from "recharts";
 export default class SurfaceAreaResults extends React.Component {
   constructor(props) {
@@ -135,9 +136,7 @@ export default class SurfaceAreaResults extends React.Component {
     if (!results) return null;
 
     const Card = ({ children }) => (
-      <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 backdrop-blur p-4 md:p-6">
-        {children}
-      </div>
+      <ModuleCard>{children}</ModuleCard>
     );
     const UnitSelector = () => (
       <div className="ml-auto">

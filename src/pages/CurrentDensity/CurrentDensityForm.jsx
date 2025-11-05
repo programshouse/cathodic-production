@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { ENVIRONMENTS, CONDITIONS, MOISTURE, TABLES } from "./utils";
 import SectionCard from "../../components/ui/SectionCard";
 import { Label, Help, Select, NumberInput } from "../../components/ui/FormControls";
+import ResetPill from "../../components/ui/ResetPill";
 import PrimaryButton from "../../components/ui/PrimaryButton";
 
 export default function CurrentDensityForm({ onSubmit, submitting, onReset }) {
@@ -46,20 +47,16 @@ export default function CurrentDensityForm({ onSubmit, submitting, onReset }) {
         title="Input Parameters"
         subtitle="Choose environment, coating condition/type and enter temperature."
         actions={(
-          <button
-            type="button"
+          <ResetPill
             onClick={() => {
-              setEnv("soil");
-              setCondition("Excellent");
+              setEnv("");
+              setCondition("");
               setCoatingType("");
-              setTemperature(25);
-              setMoisture("dry");
+              setTemperature("");
+              setMoisture("");
               if (onReset) onReset();
             }}
-            className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
-          >
-            Reset
-          </button>
+          />
         )}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -74,6 +71,7 @@ export default function CurrentDensityForm({ onSubmit, submitting, onReset }) {
               }}
               required
             >
+              <option value="" disabled>Select environment</option>
               {ENVIRONMENTS.map((e) => (
                 <option key={e.value} value={e.value}>{e.label}</option>
               ))}
@@ -92,6 +90,7 @@ export default function CurrentDensityForm({ onSubmit, submitting, onReset }) {
               }}
               required
             >
+              <option value="" disabled>Select condition</option>
               {conditionOptions.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -107,13 +106,10 @@ export default function CurrentDensityForm({ onSubmit, submitting, onReset }) {
               onChange={(e) => setCoatingType(e.target.value)}
               required
             >
-              {typesForCondition.length === 0 ? (
-                <option value="">Select condition first</option>
-              ) : (
-                typesForCondition.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))
-              )}
+              <option value="" disabled>{typesForCondition.length === 0 ? "Select condition first" : "Select coating type"}</option>
+              {typesForCondition.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
             </Select>
             <Help>Options depend on selected condition and environment.</Help>
           </div>
@@ -142,6 +138,7 @@ export default function CurrentDensityForm({ onSubmit, submitting, onReset }) {
                 onChange={(e) => setMoisture(e.target.value)}
                 required
               >
+                <option value="" disabled>Select moisture</option>
                 {MOISTURE.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
                 ))}

@@ -12,10 +12,7 @@ import CalculatorPanel from "../../components/ui/CalculatorPanel";
 export default class SurfaceAreaPage extends React.Component {
   constructor(props) {
     super(props);
-    const saved = (typeof window !== 'undefined') ? window.localStorage.getItem('surface_area_calc') : null;
-    const parsed = saved ? JSON.parse(saved) : null;
-
-    this.state = parsed || {
+    this.state = {
       structureType: STRUCTURE_TYPES[0].value,
       inputs: { diameter: "", length: "", tankHeight: "", height: "", includeBottom: true },
       units: { diameter: "m", length: "m", tankHeight: "m", height: "m" },
@@ -26,38 +23,11 @@ export default class SurfaceAreaPage extends React.Component {
     };
   }
 
-  handleBeforeUnload = () => {
-    if (typeof window !== 'undefined') {
-      try {
-        window.localStorage.removeItem('surface_area_calc');
-      } catch { void 0; }
-    }
-  };
-
-  componentDidMount() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', this.handleBeforeUnload);
-    }
-  }
-
-  componentDidUpdate(_, prevState) {
-    if (prevState !== this.state && typeof window !== 'undefined') {
-      const { structureType, inputs, units, results } = this.state;
-      window.localStorage.setItem(
-        'surface_area_calc',
-        JSON.stringify({ structureType, inputs, units, results })
-      );
-    }
-  }
-
-  componentWillUnmount() {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('beforeunload', this.handleBeforeUnload);
-      try {
-        window.localStorage.removeItem('surface_area_calc');
-      } catch { void 0; }
-    }
-  }
+  // No persistence: allow unmount/navigation to clear form state
+  handleBeforeUnload = () => {};
+  componentDidMount() {}
+  componentDidUpdate() {}
+  componentWillUnmount() {}
 
   setError = (msg) => this.setState({ error: msg });
 

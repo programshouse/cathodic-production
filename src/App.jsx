@@ -17,6 +17,8 @@ import Form from "./pages/Form";
 import SurfaceAreaPage from "./pages/SurfaceArea/SurfaceAreaPage";
 import CurrentDensityPage from "./pages/CurrentDensity/CurrentDensityPage";
 import CoatingFactorsPage from "./pages/CoatingFactors/CoatingFactorsPage";
+import GroundbedPage from "./pages/GroundbedResistance/GroundbedPage";
+import CircuitResistancePage from "./pages/CircuitResistance/CircuitResistancePage";
 
 
 // GuestOnlyRoute: only guests (not logged-in)
@@ -38,10 +40,14 @@ const router = createBrowserRouter([
           { path: "/pages/surface-area", element: <SurfaceAreaPage /> },
           { path: "/pages/current-density", element: <CurrentDensityPage /> },
           { path: "/pages/coating-factors", element: <CoatingFactorsPage /> },
+          { path: "/pages/groundbed-resistance", element: <GroundbedPage /> },
+          { path: "/pages/circuit-resistance", element: <CircuitResistancePage /> },
           // Legacy redirects
           { path: "/surface-area", element: <Navigate to="/pages/surface-area" replace /> },
           { path: "/current-density", element: <Navigate to="/pages/current-density" replace /> },
           { path: "/coating-factors", element: <Navigate to="/pages/coating-factors" replace /> },
+          { path: "/groundbed-resistance", element: <Navigate to="/pages/groundbed-resistance" replace /> },
+          { path: "/circuit-resistance", element: <Navigate to="/pages/circuit-resistance" replace /> },
         ],
   },
   {

@@ -3,6 +3,7 @@ import SectionCard from "../../components/ui/SectionCard";
 import { Label, Help, Select, NumberInput } from "../../components/ui/FormControls";
 import PrimaryButton from "../../components/ui/PrimaryButton";
 import { COATING_TYPES, SOIL_TYPES } from "./utils";
+import ResetPill from "../../components/ui/ResetPill";
 
 export default function CoatingFactorsForm({ onSubmit, submitting }) {
   const [coatingType, setCoatingType] = useState("liquid_epoxy");
@@ -37,20 +38,7 @@ export default function CoatingFactorsForm({ onSubmit, submitting }) {
       <SectionCard
         title="Input Parameters"
         subtitle="Provide parameters to compute coating breakdown factor."
-        actions={(
-          <button
-            type="button"
-            onClick={() => {
-              setCoatingType("liquid_epoxy");
-              setDesignLifeYears(25);
-              setTemperatureC(25);
-              setSoilType("sandy");
-            }}
-            className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300"
-          >
-            Reset
-          </button>
-        )}
+        actions={(<ResetPill onClick={() => { setCoatingType("liquid_epoxy"); setDesignLifeYears(""); setTemperatureC(""); setSoilType("sandy"); onSubmit && void 0; }} />)}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>

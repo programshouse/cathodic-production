@@ -192,7 +192,7 @@ export default class SurfaceAreaResults extends React.Component {
                 <BarChart data={data} margin={{ top: 8, right: 16, left: 40, bottom: 0 }} barCategoryGap="20%" barGap={6}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="name" tick={{ fontSize: 16 }} />
-                  <YAxis domain={[0, yMax]} tick={{ fontSize: 16 }} tickFormatter={(v) => this.fmt(v, 0)} allowDecimals label={{ value: unitLabel, angle: -90, position: 'insideLeft', offset: 8 }} />
+                  <YAxis domain={[0, yMax]} tick={{ fontSize: 12 }} tickFormatter={(v) => this.fmt(v, 0)} allowDecimals label={{ value: unitLabel, angle: -90, position: 'insideLeft', offset: 8 }} />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="value" name={unitLabel} fill="#3b82f6" radius={[6,6,0,0]} isAnimationActive animationDuration={650} />
@@ -264,7 +264,7 @@ export default class SurfaceAreaResults extends React.Component {
                 <BarChart data={data} margin={{ top: 8, right: 16, left: 40, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="name" tick={{ fontSize: 14 }} />
-                  <YAxis domain={[0, yMax]} tick={{ fontSize: 14 }} tickFormatter={(v) => this.fmt(v, 0)} allowDecimals label={{ value: unitLabel, angle: -90, position: 'insideLeft' }} />
+                  <YAxis domain={[0, yMax]} tick={{ fontSize: 12 }} tickFormatter={(v) => this.fmt(v, 0)} allowDecimals label={{ value: unitLabel, angle: -90, position: 'insideLeft' }} />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="value" name={unitLabel} fill="#3b82f6" radius={[6,6,0,0]} />
@@ -310,7 +310,7 @@ export default class SurfaceAreaResults extends React.Component {
                 <BarChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="name" tick={{ fontSize: 14 }} />
-                  <YAxis tick={{ fontSize: 14 }} label={{ value: unitLabel, angle: -90, position: 'insideLeft' }} />
+                  <YAxis tick={{ fontSize: 12 }} label={{ value: unitLabel, angle: -90, position: 'insideLeft' }} />
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="value" name={unitLabel} fill="#3b82f6" radius={[6,6,0,0]} />

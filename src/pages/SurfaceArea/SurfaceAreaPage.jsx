@@ -30,7 +30,7 @@ export default class SurfaceAreaPage extends React.Component {
     if (typeof window !== 'undefined') {
       try {
         window.localStorage.removeItem('surface_area_calc');
-      } catch {}
+      } catch { void 0; }
     }
   };
 
@@ -55,7 +55,7 @@ export default class SurfaceAreaPage extends React.Component {
       window.removeEventListener('beforeunload', this.handleBeforeUnload);
       try {
         window.localStorage.removeItem('surface_area_calc');
-      } catch {}
+      } catch { void 0; }
     }
   }
 
@@ -280,7 +280,9 @@ export default class SurfaceAreaPage extends React.Component {
       ts: Date.now(),
     };
     try {
-      console.log("save-history", payload);
+      if (import.meta && import.meta.env && import.meta.env.DEV) {
+        console.warn('save-history', payload);
+      }
       alert("Saved to history (placeholder). Wire this to your store/API when ready.");
     } catch {
       alert("Failed to save to history.");

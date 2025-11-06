@@ -24,7 +24,7 @@ import SidebarWidget from "./SidebarWidget";
 
 const navItems = [
   { name: "Attenuation & Pipeline Potential profile", icon: <MdTimeline />,            path: "/pages/attenuation" },
-  { name: "Barnes Layer Resistivity",                 icon: <MdLayers />,             path: "/pages/barnes-layer-resistivity" },
+  { name: "Barnes Layer Resistivity",                 icon: <MdLayers />,             path: "/pages/barnes-layer" },
   { name: "Circuit Resistance Module",                icon: <MdCable />,              path: "/pages/circuit-resistance" },
   { name: "Coating Factors Calculation",              icon: <MdFormatPaint />,        path: "/pages/coating-factors" },
   { name: "Current Density Calculation",              icon: <MdWaterDrop />,          path: "/pages/current-density" },
@@ -37,7 +37,7 @@ const navItems = [
   { name: "Solar Sizing",                             icon: <MdSolarPower />,         path: "/pages/solar-sizing" },
   { name: "Surface Area Calculation",                 icon: <MdGridOn />,             path: "/pages/surface-area" },
   { name: "Tank MMO Anode Sizing",                    icon: <MdBlurCircular />,       path: "/pages/tank-mmo-sizing" },
-  { name: "Variable Resistor & Shunt Resistor Sizing",icon: <MdTune />,               path: "/pages/Variable-Resistor-Shunt " },
+  { name: "Variable Resistor & Shunt Resistor Sizing",icon: <MdTune />,               path: "/pages/Variable-Resistor-Shunt" },
   { name: "Resistor Sizing",                           icon: <MdTune />,               path: "/pages/resistor-sizing" },
   { name: "Voltage Gradient",                         icon: <MdShowChart />,          path: "/pages/voltage-gradient" },
 ];

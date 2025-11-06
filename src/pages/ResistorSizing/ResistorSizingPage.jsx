@@ -24,7 +24,6 @@ export default class ResistorSizingPage extends React.Component {
       submitting: false,
       results: parsed?.results || null,
       error: null,
-      activeTab: "results",
       savedInputs: parsed?.inputs || null,
     };
   }
@@ -40,11 +39,11 @@ export default class ResistorSizingPage extends React.Component {
     } = raw || {};
 
     if (!(Number(V_rect_value) > 0) || !(Number(I_target_value) > 0) || !(Number(R_circuit_ohm) >= 0)) {
-      this.setState({ error: "Provide rectifier voltage, target current, and circuit resistance.", activeTab: 'results' });
+      this.setState({ error: "Provide rectifier voltage, target current, and circuit resistance." });
       return;
     }
     if (!(Number(V_shunt_value) > 0) || !(Number(I_shunt_value) > 0)) {
-      this.setState({ error: "Provide shunt voltage and shunt current.", activeTab: 'results' });
+      this.setState({ error: "Provide shunt voltage and shunt current." });
       return;
     }
 
@@ -70,39 +69,45 @@ export default class ResistorSizingPage extends React.Component {
     });
 
     try { window.localStorage.setItem('resistor_sizing_calc', JSON.stringify({ inputs, results })); } catch { /* ignore */ }
-    this.setState({ results, savedInputs: inputs, error: null, activeTab: 'results' });
+    this.setState({ results, savedInputs: inputs, error: null });
   };
 
   onResetAll = () => {
     try { window.localStorage.removeItem('resistor_sizing_calc'); } catch { /* ignore */ }
-    this.setState({ results: null, error: null, activeTab: 'results', savedInputs: null });
+    this.setState({ results: null, error: null, savedInputs: null });
   };
 
   render() {
-    const { submitting, results, error, activeTab, savedInputs } = this.state;
+    const { submitting, results, error, savedInputs } = this.state;
+    const path = (typeof window !== 'undefined' && window.location && window.location.pathname) ? window.location.pathname : '';
+    const isVarShunt = path.toLowerCase().includes('variable-resistor-shunt');
+    const pageTitle = isVarShunt ? 'Variable Resistor & Shunt Resistor Sizing' : 'Resistor Sizing';
 
     return (
       <CalculatorPanel
-        title="Resistor Sizing"
-        subtitle="Variable resistor and shunt resistor values and power dissipation."
-        infoSlot={
-          <ModuleCard title="Equations" subtitle="Sizing relations">
-            <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Variable:  Rv = V/I − Rc    ,   P = I^2 · Rv
-Shunt:     R  = V/I        ,   P = I^2 · R`}</pre>
-            <div className="mt-2"><ResetPill onClick={this.onResetAll} /></div>
-          </ModuleCard>
+        left={
+          <div>
+            {error ? (
+              <div className="mb-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 px-4 py-3 text-sm">{error}</div>
+            ) : null}
+            <ResistorSizingForm title={pageTitle} onSubmit={this.onSubmit} submitting={submitting} onReset={this.onResetAll} initialValues={savedInputs || {}} />
+          </div>
         }
-        formSlot={<ResistorSizingForm onSubmit={this.onSubmit} submitting={submitting} onReset={this.onResetAll} initialValues={savedInputs || {}} />}
-        resultsSlot={
-          <Tabs active={activeTab} onChange={(t)=>this.setState({activeTab:t})} tabs={{
-            results: { label: 'Results', content: (
-              <div className="space-y-4">
-                {error && (<div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-3 py-2 text-sm">{error}</div>)}
-                <ResistorSizingResults results={results} />
-              </div>
-            ) },
-            reference: { label: 'Reference', content: null },
-          }} />
+        right={
+          <div className="space-y-4">
+            <ModuleCard
+              title="Equations"
+              subtitle="Sizing relations"
+              actions={<span className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900">Formula</span>}
+            >
+              <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Variable:  Rv = V/I − Rc    ,   P = I^2 · Rv
+Shunt:     R  = V/I        ,   P = I^2 · R`}</pre>
+              <div className="mt-2"><ResetPill onClick={this.onResetAll} /></div>
+            </ModuleCard>
+            <div className="space-y-4">
+              <ResistorSizingResults results={results} />
+            </div>
+          </div>
         }
       />
     );

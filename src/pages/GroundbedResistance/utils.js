@@ -74,3 +74,17 @@ export function seriesForN({ maxN = 20, R_single, spacing_m, L_m }) {
   }
   return data;
 }
+
+// Sweep electrode spacing to produce R vs spacing series for current config
+export function seriesForSpacing({ config, rho_cm, L_m, d_m, spacingMin = 1, spacingMax = 30, step = 1, N = 1 }) {
+  const data = [];
+  for (let a = Number(spacingMin || 1); a <= Number(spacingMax || 30); a += Number(step || 1)) {
+    const isVertical = (config === "vertical_single" || config === "deepwell" || config === "vertical_multiple");
+    const R_single = isVertical ? verticalSingle({ rho_cm, L_m, d_m }) : horizontalSingle({ rho_cm, L_m, d_m });
+    const multiple = (config === "vertical_multiple" || config === "horizontal_multiple");
+    const F = multiple ? interactionFactorEstimate({ spacing_m: a, L_m }) : 1.0;
+    const Rtot = multiple ? parallelResistance({ R_single, N, F }) : R_single;
+    data.push({ a, value: Rtot });
+  }
+  return data;
+}

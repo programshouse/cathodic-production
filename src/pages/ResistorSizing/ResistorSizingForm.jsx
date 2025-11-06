@@ -4,7 +4,7 @@ import { Label, Help, Select, NumberInput } from "../../components/ui/FormContro
 import ResetPill from "../../components/ui/ResetPill";
 import PrimaryButton from "../../components/ui/PrimaryButton";
 
-export default function ResistorSizingForm({ onSubmit, submitting, onReset, initialValues = {} }) {
+export default function ResistorSizingForm({ onSubmit, submitting, onReset, initialValues = {}, title = "Variable Resistor & Shunt Resistor Sizing" }) {
   // Variable resistor inputs
   const [V_rect, setVrect] = useState(initialValues.V_rect_value ?? "");
   const [V_rect_unit, setVrectUnit] = useState(initialValues.V_rect_unit || "V");
@@ -45,7 +45,7 @@ export default function ResistorSizingForm({ onSubmit, submitting, onReset, init
       <div className="relative overflow-hidden rounded-2xl">
         <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-brand-400 opacity-90" />
         <div className="relative px-5 py-5 md:px-7 md:py-6">
-          <h2 className="text-white text-xl md:text-2xl font-semibold tracking-tight">Variable Resistor & Shunt Resistor Sizing</h2>
+          <h2 className="text-white text-xl md:text-2xl font-semibold tracking-tight">{title}</h2>
           <p className="text-brand-50/90 text-sm md:text-base mt-1">Enter rectifier voltage/current, circuit resistance, and shunt voltage/current. Output in Ω and W.</p>
         </div>
       </div>

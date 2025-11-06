@@ -25,6 +25,8 @@ import AttenuationPage from "./pages/Attenuation/AttenuationPage";
 import VoltageGradientPage from "./pages/VoltageGradient/VoltageGradientPage";
 import SoilResistivityPage from "./pages/SoilResistivity/SoilResistivityPage";
 import ResistorSizingPage from "./pages/ResistorSizing/ResistorSizingPage";
+import VariableResistorPage from "./pages/VariableResistor/VariableResistorPage";
+import BarnesLayerPage from "./pages/BarnesLayer/BarnesLayerPage";
 
 
 // GuestOnlyRoute: only guests (not logged-in)
@@ -53,7 +55,10 @@ const router = createBrowserRouter([
           { path: "/pages/attenuation", element: <AttenuationPage /> },
           { path: "/pages/voltage-gradient", element: <VoltageGradientPage /> },
           { path: "/pages/soil-resistivity", element: <SoilResistivityPage /> },
-          { path: "/pages/resistor-sizing", element: <ResistorSizingPage /> },
+          { path: "/pages/resistor-sizing", element: <VariableResistorPage /> },
+          { path: "/pages/Variable-Resistor-Shunt", element: <ResistorSizingPage /> },
+          { path: "/pages/variable-resistor-shunt", element: <Navigate to="/pages/Variable-Resistor-Shunt" replace /> },
+          { path: "/pages/barnes-layer", element: <BarnesLayerPage /> },
           // Legacy redirects
           { path: "/surface-area", element: <Navigate to="/pages/surface-area" replace /> },
           { path: "/current-density", element: <Navigate to="/pages/current-density" replace /> },
@@ -66,6 +71,7 @@ const router = createBrowserRouter([
           { path: "/voltage-gradient", element: <Navigate to="/pages/voltage-gradient" replace /> },
           { path: "/soil-resistivity", element: <Navigate to="/pages/soil-resistivity" replace /> },
           { path: "/resistor-sizing", element: <Navigate to="/pages/resistor-sizing" replace /> },
+          { path: "/Variable-Resistor-Shunt", element: <Navigate to="/pages/Variable-Resistor-Shunt" replace /> },
         ],
   },
   {

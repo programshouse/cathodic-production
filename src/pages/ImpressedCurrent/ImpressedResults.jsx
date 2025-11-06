@@ -12,9 +12,36 @@ export default function ImpressedResults({ results }) {
 
   const { I_A, I_mA, V_system, P_W, E_annual_kWh, anode, series, inputs } = results;
 
+  const allRows = [
+    { Label: "Required Current", Value_A: Number(I_A)||0, Unit_A: "A", Value_mA: Number(I_mA)||0, Unit_mA: "mA" },
+    { Label: "System Voltage", Value: Number(V_system)||0, Unit: "V" },
+    { Label: "Power", Value_W: Number(P_W)||0, Unit_W: "W", Value_kW: Number(P_W)/1000 || 0, Unit_kW: "kW" },
+    { Label: "Annual Energy", Value: Number(E_annual_kWh)||0, Unit: "kWh/yr" },
+  ];
+
+  const toCSV = (rows) => {
+    if (!rows || !rows.length) return "";
+    const headers = Object.keys(rows[0]);
+    const head = headers.join(",");
+    const body = rows.map((row) => headers.map((h) => `"${String(row[h] ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+    return `${head}\n${body}`;
+  };
+  const downloadCSV = () => {
+    const csv = toCSV(allRows);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "impressed_current_results.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
-      <ModuleCard title="Key Results">
+      <ModuleCard title="Key Results" actions={<button type="button" onClick={downloadCSV} className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">CSV</button>}>
         <div className="space-y-4">
           <ResultValue
             label="Required Current"
@@ -24,8 +51,6 @@ export default function ImpressedResults({ results }) {
             unitOptions={[{ value: "A", label: "A" }, { value: "mA", label: "mA" }]}
             onUnitChange={() => { /* display only */ }}
             precision={3}
-            csvData={[{ metric: 'Required Current', value: I_A, unit: 'A', value_mA: I_mA, unit_mA: 'mA' }]}
-            csvFilename={`impressed-current-required-current.csv`}
           />
           <ResultValue
             label="System Voltage"
@@ -35,8 +60,6 @@ export default function ImpressedResults({ results }) {
             unitOptions={[{ value: "V", label: "V" }, { value: "mV", label: "mV" }]}
             onUnitChange={()=>{}}
             precision={3}
-            csvData={[{ metric: 'System Voltage', value: V_system, unit: 'V' }]}
-            csvFilename={`impressed-current-voltage.csv`}
           />
           <ResultValue
             label="Power"
@@ -46,8 +69,6 @@ export default function ImpressedResults({ results }) {
             unitOptions={[{ value: "W", label: "W" }, { value: "kW", label: "kW" }]}
             onUnitChange={()=>{}}
             precision={2}
-            csvData={[{ metric: 'Power', value_W: P_W, value_kW: P_W/1000, unit_W: 'W', unit_kW: 'kW' }]}
-            csvFilename={`impressed-current-power.csv`}
           />
           <ResultValue
             label="Annual Energy"
@@ -57,8 +78,6 @@ export default function ImpressedResults({ results }) {
             unitOptions={[{ value: "kWh/yr", label: "kWh/yr" }]}
             onUnitChange={()=>{}}
             precision={1}
-            csvData={[{ metric: 'Annual Energy', value: E_annual_kWh, unit: 'kWh/yr' }]}
-            csvFilename={`impressed-current-annual-energy.csv`}
           />
         </div>
       </ModuleCard>

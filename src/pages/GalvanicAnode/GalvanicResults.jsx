@@ -1,5 +1,6 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
+import ResultValue from "../../components/ui/ResultValue";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
 export default function GalvanicResults({ results }) {
@@ -18,6 +19,37 @@ export default function GalvanicResults({ results }) {
 
   return (
     <div className="space-y-4">
+      <ModuleCard title="Key Results">
+        <div className="space-y-4">
+          <ResultValue
+            label="Current Requirement"
+            formula="I = A × Jd × f_c"
+            value={I}
+            unit={"A"}
+            precision={3}
+            csvData={[["metric","value","unit"],["I", I, "A"]]}
+            csvFilename={`galvanic-current.csv`}
+          />
+          <ResultValue
+            label="Required Anode Weight"
+            formula="W_required = I × t × 8760 / (U × η)"
+            value={W_required}
+            unit={"kg"}
+            precision={2}
+            csvData={[["metric","value","unit"],["W_required", W_required, "kg"]]}
+            csvFilename={`galvanic-required-weight.csv`}
+          />
+          <ResultValue
+            label="Number of Anodes"
+            formula="N = W_required / W_single"
+            value={N}
+            unit={""}
+            precision={2}
+            csvData={[["metric","value"],["N", N]]}
+            csvFilename={`galvanic-anode-count.csv`}
+          />
+        </div>
+      </ModuleCard>
       <ModuleCard title="Equations" subtitle="I = A × Jd × f_c;  W_required = I × t × 8760 / (U × η);  N = W_required / W_single">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
           <div>

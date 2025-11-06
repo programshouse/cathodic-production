@@ -21,6 +21,10 @@ import GroundbedPage from "./pages/GroundbedResistance/GroundbedPage";
 import CircuitResistancePage from "./pages/CircuitResistance/CircuitResistancePage";
 import GalvanicPage from "./pages/GalvanicAnode/GalvanicPage";
 import ImpressedPage from "./pages/ImpressedCurrent/ImpressedPage";
+import AttenuationPage from "./pages/Attenuation/AttenuationPage";
+import VoltageGradientPage from "./pages/VoltageGradient/VoltageGradientPage";
+import SoilResistivityPage from "./pages/SoilResistivity/SoilResistivityPage";
+import ResistorSizingPage from "./pages/ResistorSizing/ResistorSizingPage";
 
 
 // GuestOnlyRoute: only guests (not logged-in)
@@ -46,6 +50,10 @@ const router = createBrowserRouter([
           { path: "/pages/circuit-resistance", element: <CircuitResistancePage /> },
           { path: "/pages/galvanic-anode", element: <GalvanicPage /> },
           { path: "/pages/impressed-current", element: <ImpressedPage /> },
+          { path: "/pages/attenuation", element: <AttenuationPage /> },
+          { path: "/pages/voltage-gradient", element: <VoltageGradientPage /> },
+          { path: "/pages/soil-resistivity", element: <SoilResistivityPage /> },
+          { path: "/pages/resistor-sizing", element: <ResistorSizingPage /> },
           // Legacy redirects
           { path: "/surface-area", element: <Navigate to="/pages/surface-area" replace /> },
           { path: "/current-density", element: <Navigate to="/pages/current-density" replace /> },
@@ -54,6 +62,10 @@ const router = createBrowserRouter([
           { path: "/circuit-resistance", element: <Navigate to="/pages/circuit-resistance" replace /> },
           { path: "/galvanic-anode", element: <Navigate to="/pages/galvanic-anode" replace /> },
           { path: "/impressed-current", element: <Navigate to="/pages/impressed-current" replace /> },
+          { path: "/attenuation", element: <Navigate to="/pages/attenuation" replace /> },
+          { path: "/voltage-gradient", element: <Navigate to="/pages/voltage-gradient" replace /> },
+          { path: "/soil-resistivity", element: <Navigate to="/pages/soil-resistivity" replace /> },
+          { path: "/resistor-sizing", element: <Navigate to="/pages/resistor-sizing" replace /> },
         ],
   },
   {

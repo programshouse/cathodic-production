@@ -1,5 +1,6 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
+import ResultValue from "../../components/ui/ResultValue";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
 export default function GroundbedResults({ results }) {
@@ -18,6 +19,28 @@ export default function GroundbedResults({ results }) {
 
   return (
     <div className="space-y-4">
+      <ModuleCard title="Key Results">
+        <div className="space-y-4">
+          <ResultValue
+            label="Total Groundbed Resistance"
+            formula="R_total = R_single / (N × F)"
+            value={R_total}
+            unit={unitLabel}
+            precision={3}
+            csvData={[["metric","value","unit"],["R_total", R_total, unitLabel]]}
+            csvFilename={`groundbed-resistance-total.csv`}
+          />
+          <ResultValue
+            label="Single-Anode Resistance"
+            formula="Vertical/Horizontal formulas per standard"
+            value={R_single}
+            unit={unitLabel}
+            precision={3}
+            csvData={[["metric","value","unit"],["R_single", R_single, unitLabel]]}
+            csvFilename={`groundbed-resistance-single.csv`}
+          />
+        </div>
+      </ModuleCard>
       <ModuleCard title="Equations" subtitle="According to standard resistance-to-earth formulations">
         <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Vertical Single: R = (ρ / 2πL) [ ln(8L/d) - 1 ]
 Horizontal Single: R = (ρ / 2πL) [ ln(2L/d) - 1 ]

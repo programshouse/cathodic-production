@@ -1,5 +1,6 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
+import ResultValue from "../../components/ui/ResultValue";
 import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, CartesianGrid, Line, ReferenceLine } from "recharts";
 
 export default function ImpressedResults({ results }) {
@@ -13,6 +14,54 @@ export default function ImpressedResults({ results }) {
 
   return (
     <div className="space-y-4">
+      <ModuleCard title="Key Results">
+        <div className="space-y-4">
+          <ResultValue
+            label="Required Current"
+            formula="I = A × Jd × f_c"
+            value={I_A}
+            unit={"A"}
+            unitOptions={[{ value: "A", label: "A" }, { value: "mA", label: "mA" }]}
+            onUnitChange={() => { /* display only */ }}
+            precision={3}
+            csvData={[{ metric: 'Required Current', value: I_A, unit: 'A', value_mA: I_mA, unit_mA: 'mA' }]}
+            csvFilename={`impressed-current-required-current.csv`}
+          />
+          <ResultValue
+            label="System Voltage"
+            formula="V = I×R + (E_target − E_native)"
+            value={V_system}
+            unit={"V"}
+            unitOptions={[{ value: "V", label: "V" }, { value: "mV", label: "mV" }]}
+            onUnitChange={()=>{}}
+            precision={3}
+            csvData={[{ metric: 'System Voltage', value: V_system, unit: 'V' }]}
+            csvFilename={`impressed-current-voltage.csv`}
+          />
+          <ResultValue
+            label="Power"
+            formula="P = V × I"
+            value={P_W}
+            unit={"W"}
+            unitOptions={[{ value: "W", label: "W" }, { value: "kW", label: "kW" }]}
+            onUnitChange={()=>{}}
+            precision={2}
+            csvData={[{ metric: 'Power', value_W: P_W, value_kW: P_W/1000, unit_W: 'W', unit_kW: 'kW' }]}
+            csvFilename={`impressed-current-power.csv`}
+          />
+          <ResultValue
+            label="Annual Energy"
+            formula="E_annual = P × 8760 / 1000"
+            value={E_annual_kWh}
+            unit={"kWh/yr"}
+            unitOptions={[{ value: "kWh/yr", label: "kWh/yr" }]}
+            onUnitChange={()=>{}}
+            precision={1}
+            csvData={[{ metric: 'Annual Energy', value: E_annual_kWh, unit: 'kWh/yr' }]}
+            csvFilename={`impressed-current-annual-energy.csv`}
+          />
+        </div>
+      </ModuleCard>
       <ModuleCard title="Electrical Summary" subtitle="Required current, voltage, power, and annual energy.">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div><div className="text-gray-500">Current</div><div className="font-semibold">{I_A.toFixed(3)} A ({I_mA.toFixed(0)} mA)</div></div>

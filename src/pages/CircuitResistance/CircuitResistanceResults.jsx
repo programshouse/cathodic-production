@@ -1,5 +1,6 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
+import ResultValue from "../../components/ui/ResultValue";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b"]; // cable, anode, pipeline
@@ -24,6 +25,23 @@ export default function CircuitResistanceResults({ results }) {
 
   return (
     <div className="space-y-4">
+      <ModuleCard title="Key Result">
+        <ResultValue
+          label="Total Circuit Resistance"
+          formula="R_total = R_cable + R_anode_groundbed + R_pipeline"
+          value={R_total}
+          unit={"Ω"}
+          precision={3}
+          csvData={[
+            ["metric","value","unit"],
+            ["R_cable", R_cable, "Ω"],
+            ["R_anode", R_anode, "Ω"],
+            ["R_pipeline", R_pipeline, "Ω"],
+            ["R_total", R_total, "Ω"],
+          ]}
+          csvFilename={`circuit-resistance-result.csv`}
+        />
+      </ModuleCard>
       <ModuleCard title="Equation" subtitle="R_total = R_cable + R_anode_groundbed + R_pipeline">
         <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Cable: R_cable = (ρ_material × Length) / Cross Section
 Anode (Series): R_anode,total = R_anode × n

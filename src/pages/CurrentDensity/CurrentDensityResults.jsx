@@ -1,5 +1,6 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
+import ResultValue from "../../components/ui/ResultValue";
 import { ResponsiveContainer, ComposedChart, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea, ReferenceLine, Scatter } from "recharts";
 
 export default function CurrentDensityResults({ results }) {
@@ -23,6 +24,22 @@ export default function CurrentDensityResults({ results }) {
 
   return (
     <div className="space-y-4">
+      <ModuleCard title="Key Result">
+        <ResultValue
+          label="Recommended Current Density"
+          formula="Jd_final = Jd_@25°C × [1 + 0.02 × (T − 25)]"
+          value={jdFinal}
+          unit={unitLabel}
+          precision={2}
+          csvData={[
+            ["metric","value","unit"],
+            ["range_min", min, unitLabel],
+            ["range_max", max, unitLabel],
+            ["jd_final", jdFinal, unitLabel],
+          ]}
+          csvFilename={`current-density-result.csv`}
+        />
+      </ModuleCard>
       <ModuleCard title="Equation">
         <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Jd_final = Jd_@25°C × [1 + 0.02 × (Temperature − 25)]`}</pre>
 

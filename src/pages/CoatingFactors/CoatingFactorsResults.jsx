@@ -1,5 +1,6 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
+import ResultValue from "../../components/ui/ResultValue";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
 export default function CoatingFactorsResults({ results }) {
@@ -18,6 +19,17 @@ export default function CoatingFactorsResults({ results }) {
 
   return (
     <div className="space-y-4">
+      <ModuleCard title="Key Result">
+        <ResultValue
+          label="Final Breakdown Factor"
+          formula="f_c = f_0 × (1 + r × t) × f_T × f_s"
+          value={final}
+          unit={unitLabel}
+          precision={4}
+          csvData={[["metric","value","unit"],["f_c", final, unitLabel]]}
+          csvFilename={`coating-factors-result.csv`}
+        />
+      </ModuleCard>
       <ModuleCard title="Equation">
         <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`f_c = Initial Factor × (1 + Annual Degradation Rate × Design Life) × Temperature Factor × Soil Factor`}</pre>
         <div className="flex items-center justify-between mb-3 mt-3">

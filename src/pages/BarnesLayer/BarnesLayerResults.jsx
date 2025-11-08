@@ -12,30 +12,16 @@ export default function BarnesLayerResults({ results }) {
 
   const { rho_top_ohm_m, rho_bottom_ohm_m, boundary_depth_m, rho_app_ohm_m, table } = results || {};
 
-  // CSV: include key results + table rows
-  const csvRows = [
-    { Label: "Top Layer Resistivity", Value: Number(rho_top_ohm_m)||0, Unit: "Ω·m" },
-    { Label: "Bottom Layer Resistivity", Value: Number(rho_bottom_ohm_m)||0, Unit: "Ω·m" },
-    { Label: "Layer Boundary Depth", Value: Number(boundary_depth_m)||0, Unit: "m" },
-    { Label: "Apparent Resistivity", Value: Number(rho_app_ohm_m)||0, Unit: "Ω·m" },
-    ...((table || []).map(r => ({
-      Spacing_m: Number(r.spacing_m)||0,
-      Measured_R_ohm: Number(r.R_meas_ohm)||0,
-      Apparent_rho_ohm_m: Number(r.rho_app_ohm_m)||0,
-      Depth_m: Number(r.depth_m)||0,
-    })))
-  ];
-
-  const filename = "barnes_layer_results.csv";
+  
 
   return (
     <div className="space-y-4">
       <ModuleCard title="Calculation Results">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ResultValue label="Top Layer Resistivity" value={Number(rho_top_ohm_m)||0} unit="Ω·m" precision={3} csvData={csvRows} csvFilename={filename} />
-          <ResultValue label="Bottom Layer Resistivity" value={Number(rho_bottom_ohm_m)||0} unit="Ω·m" precision={3} csvData={csvRows} csvFilename={filename} />
-          <ResultValue label="Layer Boundary Depth" value={Number(boundary_depth_m)||0} unit="m" precision={3} csvData={csvRows} csvFilename={filename} />
-          <ResultValue label="Apparent Resistivity" value={Number(rho_app_ohm_m)||0} unit="Ω·m" precision={3} csvData={csvRows} csvFilename={filename} />
+          <ResultValue label="Top Layer Resistivity" value={Number(rho_top_ohm_m)||0} unit="Ω·m" precision={3} />
+          <ResultValue label="Bottom Layer Resistivity" value={Number(rho_bottom_ohm_m)||0} unit="Ω·m" precision={3} />
+          <ResultValue label="Layer Boundary Depth" value={Number(boundary_depth_m)||0} unit="m" precision={3} />
+          <ResultValue label="Apparent Resistivity" value={Number(rho_app_ohm_m)||0} unit="Ω·m" precision={3} />
         </div>
       </ModuleCard>
 

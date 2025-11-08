@@ -10,12 +10,17 @@ import SoilResistivityReference from "./SoilResistivityReference";
 import { computeSoilResistivity } from "./utils";
 
 /** Keep outside the class to avoid class-field transpilation issues */
-function InfoCard({ onReset }) {
+function InfoCard({ onReset, onCsv }) {
   return (
     <ModuleCard
       title="Soil Resistivity"
       subtitle="Apparent resistivity from field measurements (Wenner / Four-Point / Schlumberger)"
-      actions={<ResetPill onClick={onReset} />}
+      actions={(
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onCsv} className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">CSV</button>
+          <ResetPill onClick={onReset} />
+        </div>
+      )}
     >
       <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Wenner / Four-Point:  ρ_a = 2π a R
 Schlumberger:        ρ_a = (π * (L^2 - l^2) / l) * R   (common field approximation)
@@ -37,7 +42,7 @@ export default class SoilResistivityPage extends React.Component {
       try {
         const saved = window.localStorage.getItem("soil_resistivity_calc");
         parsed = saved ? JSON.parse(saved) : null;
-      } catch (err) {
+      } catch {
         // ignore malformed JSON / storage errors
       }
     }
@@ -50,6 +55,25 @@ export default class SoilResistivityPage extends React.Component {
       savedInputs: parsed?.inputs || null,
     };
   }
+
+  downloadResultsCsv = () => {
+    const { results } = this.state || {};
+    if (!results) return;
+    const { rho_ohm_m = 0, unitRho = "ohm-m", data = [], seriesLabel = "spacing (m)" } = results || {};
+    const header = ["metric","value","unit"];
+    const rows = [
+      header,
+      ["Soil Resistivity", Number(rho_ohm_m||0), unitRho],
+      [],
+      [seriesLabel, "ρ (Ω·m)", ""],
+      ...data.map(pt => [pt.x, pt.rho, ""]),
+    ];
+    const csv = rows.map(r => r.map(c => c === undefined ? '' : `"${String(c).replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'soil-resistivity-results.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
 
   onSubmit = (inputs) => {
     const { method, R_ohm, a, L, l } = inputs || {};
@@ -98,7 +122,7 @@ export default class SoilResistivityPage extends React.Component {
         }
       } catch (err) {
         // ignore quota / storage errors
-        if (process.env.NODE_ENV === "development") {
+        if (import.meta && import.meta.env && import.meta.env.DEV) {
           // eslint-disable-next-line no-console
           console.debug("localStorage save failed:", err);
         }
@@ -119,10 +143,10 @@ export default class SoilResistivityPage extends React.Component {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("soil_resistivity_calc");
       }
-    } catch (err) {
-      if (process.env.NODE_ENV === "development") {
+    } catch {
+      if (import.meta && import.meta.env && import.meta.env.DEV) {
         // eslint-disable-next-line no-console
-        console.debug("localStorage clear failed:", err);
+        console.debug("localStorage clear failed");
       }
     } finally {
       this.setState({
@@ -160,7 +184,7 @@ export default class SoilResistivityPage extends React.Component {
         }
         right={
           <div className="space-y-4">
-            <InfoCard onReset={this.onResetAll} />
+            <InfoCard onReset={this.onResetAll} onCsv={this.downloadResultsCsv} />
             <Tabs
               items={[
                 { key: "results", label: "Results" },

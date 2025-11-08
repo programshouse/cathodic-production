@@ -60,6 +60,39 @@ export default class BarnesLayerPage extends React.Component {
     this.setState({ results: null, error: null, savedInputs: null });
   };
 
+  downloadResultsCsv = () => {
+    const { results } = this.state || {};
+    if (!results) return;
+    const {
+      rho_top_ohm_m,
+      rho_bottom_ohm_m,
+      boundary_depth_m,
+      rho_app_ohm_m,
+      table = [],
+    } = results;
+
+    const rows = [
+      ['metric','value','unit'],
+      ['Top Layer Resistivity', Number(rho_top_ohm_m||0), 'Ω·m'],
+      ['Bottom Layer Resistivity', Number(rho_bottom_ohm_m||0), 'Ω·m'],
+      ['Layer Boundary Depth', Number(boundary_depth_m||0), 'm'],
+      ['Apparent Resistivity', Number(rho_app_ohm_m||0), 'Ω·m'],
+      [],
+      ['Spacing (m)','Measured R (Ω)','Apparent ρ (Ω·m)','Depth (m)'],
+      ...table.map(r => [
+        Number(r.spacing_m||0),
+        Number(r.R_meas_ohm||0),
+        Number(r.rho_app_ohm_m||0),
+        Number(r.depth_m||0),
+      ]),
+    ];
+    const csv = rows.map(r => r.map(c => c === undefined ? '' : `"${String(c).replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'barnes-layer-results.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
   render() {
     const { submitting, results, error, savedInputs } = this.state;
 
@@ -75,7 +108,12 @@ export default class BarnesLayerPage extends React.Component {
         }
         right={
           <div className="space-y-4">
-            <ModuleCard title="Barnes Layer Calculation" subtitle="ρa = 2π a R" actions={<ResetPill onClick={this.onResetAll} />}>
+            <ModuleCard title="Barnes Layer Calculation" subtitle="ρa = 2π a R" actions={(
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={this.downloadResultsCsv} className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">CSV</button>
+                <ResetPill onClick={this.onResetAll} />
+              </div>
+            )}>
               <div className="text-sm text-gray-700 dark:text-gray-300">Single-layer Barnes method demonstration with apparent resistivity vs spacing.</div>
             </ModuleCard>
             <BarnesLayerResults results={results} />

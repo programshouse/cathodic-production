@@ -9,14 +9,6 @@ export default function InterferenceResults({ results }) {
   );
 
   const { V_int = 0, V_shift = 0, V_new = 0, k_type, k_src, status, severity, mitigations = [] } = results || {};
-  const allRows = [
-    { Metric: "Interference Voltage", Value: Number(V_int)||0, Unit: "V" },
-    { Metric: "Potential Shift", Value: Number(V_shift)||0, Unit: "V" },
-    { Metric: "New Pipe Potential", Value: Number(V_new)||0, Unit: "V" },
-    { Metric: "Type Coefficient", Value: Number(k_type)||0, Unit: "-" },
-    { Metric: "Source Multiplier", Value: Number(k_src)||0, Unit: "-" },
-  ];
-  const filename = "interference_results.csv";
 
   const formula = "Vint = (I · ρ) / (2π · d · k_type) × k_source";
 
@@ -27,9 +19,9 @@ export default function InterferenceResults({ results }) {
         subtitle={<span className="inline-flex items-center gap-2"><span className="text-xs uppercase tracking-wide text-gray-500">Formula</span><span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border text-gray-700 dark:text-gray-300">{formula}</span></span>}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <ResultValue label="Interference Voltage" value={Number(V_int)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Potential Shift" value={Number(V_shift)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="New Pipe Potential" value={Number(V_new)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
+          <ResultValue label="Interference Voltage" value={Number(V_int)||0} unit="V" precision={3} />
+          <ResultValue label="Potential Shift" value={Number(V_shift)||0} unit="V" precision={3} />
+          <ResultValue label="New Pipe Potential" value={Number(V_new)||0} unit="V" precision={3} />
         </div>
       </ModuleCard>
 

@@ -13,7 +13,7 @@ export default function ImpressedForm({
 }) {
   const [structure, setStructure] = useState(initialValues.structure || "pipeline");
   const [area, setArea] = useState(initialValues.area_m2 ?? "");
-  const [coatingFactor, setCoatingFactor] = useState(initialValues.coating_factor ?? "");
+  // Coating factor fixed to 1; no state needed
   const [designLife, setDesignLife] = useState(initialValues.design_life_years ?? "");
   const [jd, setJd] = useState(initialValues.jd_mA_per_m2 ?? "");
   const [jdUnit, setJdUnit] = useState(initialValues.jd_unit || "mA/m2");
@@ -127,13 +127,10 @@ export default function ImpressedForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <Label>Coating Factor f<sub>c</sub></Label>
-            <NumberInput
-              name="coating_factor"
-              placeholder="e.g. 0.6"
-              step="0.01"
-              value={coatingFactor}
-              onChange={(e) => setCoatingFactor(e.target.value)}
-            />
+            <div className="flex items-center gap-2">
+              <NumberInput name="coating_factor_display" value="1" disabled readOnly />
+            </div>
+            <input type="hidden" name="coating_factor" value="1" />
           </div>
           <div>
             <Label>Design Life t (years)</Label>

@@ -8,7 +8,6 @@ import { MATERIALS } from "./utils";
 export default function GalvanicForm({ onSubmit, submitting, onReset }) {
   const [area_m2, setArea] = useState("");
   const [jd_mA_per_m2, setJD] = useState("");
-  const [coating_factor, setFc] = useState("");
   const [design_life_years, setLife] = useState("");
 
   const [material, setMaterial] = useState("");
@@ -35,7 +34,7 @@ export default function GalvanicForm({ onSubmit, submitting, onReset }) {
         title="Structure Parameters"
         subtitle="Surface area, current density, coating factor, design life"
         actions={(
-          <ResetPill onClick={() => { setArea(""); setJD(""); setFc(""); setLife(""); onReset && onReset(); }} />
+          <ResetPill onClick={() => { setArea(""); setJD(""); setLife(""); onReset && onReset(); }} />
         )}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -56,15 +55,40 @@ export default function GalvanicForm({ onSubmit, submitting, onReset }) {
           </div>
           <div>
             <Label required>Coating Factor</Label>
-            <NumberInput name="coating_factor" inputMode="decimal" step="any" min="0" value={coating_factor} onChange={(e)=>setFc(e.target.value)} required />
-          </div>
-          <div>
-            <Label required>Design Life</Label>
-            <div className="flex gap-2">
-              <NumberInput name="design_life_years" inputMode="numeric" step="1" min="0" value={design_life_years} onChange={(e)=>setLife(e.target.value)} required />
-              <span className="inline-flex items-center text-sm text-gray-500">years</span>
+            <div className="flex items-center gap-2">
+              <NumberInput name="coating_factor_display" value="1" disabled readOnly />
+         
             </div>
+            <input type="hidden" name="coating_factor" value="1" />
           </div>
+<div>
+  <Label required>Design Life</Label>
+  <div className="flex gap-2">
+    <NumberInput
+      name="design_life_years"
+      inputMode="numeric"
+      step="1"
+      min="1"
+      value={design_life_years}
+      // block decimals/exponents from keyboard
+      onKeyDown={(e) => {
+        const blocked = ['.', ',', 'e', 'E', '+', '-'];
+        if (blocked.includes(e.key)) e.preventDefault();
+      }}
+      // keep only digits; clamp to min=1 when not empty
+      onChange={(e) => {
+        const digitsOnly = e.target.value.replace(/\D+/g, '');
+        if (digitsOnly === '') { setLife(''); return; }
+        const n = Math.max(1, parseInt(digitsOnly, 10));
+        setLife(String(n));
+      }}
+      required
+      placeholder="e.g. 20"
+    />
+    <span className="inline-flex items-center text-sm text-gray-500">years</span>
+  </div>
+</div>
+
         </div>
       </SectionCard>
 

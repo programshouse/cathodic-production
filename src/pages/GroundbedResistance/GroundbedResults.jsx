@@ -39,7 +39,8 @@ export default function GroundbedResults({ results }) {
       </ModuleCard>
       <ModuleCard title="Equations" subtitle="According to standard resistance-to-earth formulations">
         <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Vertical Single: R = (ρ / 2πL) [ ln(8L/d) - 1 ]
-Horizontal Single: R = (ρ / 2πL) [ ln(2L/d) - 1 ]
+Deepwell:       R = (ρ / 2πL) [ ln(4L/d) - 1 ]
+Horizontal:     R = (ρ / 2πL) [ ln(2L/d) ]
 Multiple in Parallel: R_total = R_single / (N × F)`}</pre>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">

@@ -22,14 +22,21 @@ export default function CoatingFactorsResults({ results }) {
       <ModuleCard title="Key Result">
         <ResultValue
           label="Final Breakdown Factor"
-          formula="f_c = f_0 × (1 + r × t) × f_T × f_s"
+          formula="f_f = f_i + (Δf × t_dl)"
           value={final}
           unit={unitLabel}
           precision={4}
         />
       </ModuleCard>
       <ModuleCard title="Equation">
-        <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`f_c = Initial Factor × (1 + Annual Degradation Rate × Design Life) × Temperature Factor × Soil Factor`}</pre>
+        <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Coating breakdown factor (linear model):
+
+f_f = f_i + (Δf × t_dl)
+
+where
+f_i  = initial coating breakdown factor at start of operation
+Δf   = average yearly increase in the coating breakdown factor
+t_dl = design life in years`}</pre>
         <div className="flex items-center justify-between mb-3 mt-3">
           <div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Final Breakdown Factor</div>

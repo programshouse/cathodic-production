@@ -25,12 +25,19 @@ export function verticalSingle({ rho_cm, L_m, d_m }) {
   return (rho_m / (2 * PI * L_m)) * term;
 }
 
-// Horizontal single anode resistance (approximation)
-// R = rho / (2πL) * [ln(2L/d) - 1]
-// A more elaborate form can be substituted if required by spec.
+// Horizontal single anode resistance (updated)
+// R = rho / (2πL) * [ln(2L/d)]
 export function horizontalSingle({ rho_cm, L_m, d_m }) {
   const rho_m = ohmCmToOhmM(rho_cm);
-  const term = Math.log((2 * L_m) / d_m) - 1.0;
+  const term = Math.log((2 * L_m) / d_m);
+  return (rho_m / (2 * PI * L_m)) * term;
+}
+
+// Deepwell vertical anode resistance (updated per provided spec)
+// R = rho / (2πL) * [ln(4L/d) - 1]
+export function deepwellSingle({ rho_cm, L_m, d_m }) {
+  const rho_m = ohmCmToOhmM(rho_cm);
+  const term = Math.log((4 * L_m) / d_m) - 1.0;
   return (rho_m / (2 * PI * L_m)) * term;
 }
 
@@ -50,8 +57,10 @@ export function parallelResistance({ R_single, N, F }) {
 
 export function computeAll({ config, rho_cm, L_m, d_m, N, spacing_m, F }) {
   let R_single;
-  if (config === "vertical_single" || config === "deepwell" || config === "vertical_multiple") {
+  if (config === "vertical_single" || config === "vertical_multiple") {
     R_single = verticalSingle({ rho_cm, L_m, d_m });
+  } else if (config === "deepwell") {
+    R_single = deepwellSingle({ rho_cm, L_m, d_m });
   } else {
     R_single = horizontalSingle({ rho_cm, L_m, d_m });
   }

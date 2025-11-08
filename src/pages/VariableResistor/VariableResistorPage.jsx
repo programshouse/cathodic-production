@@ -11,19 +11,16 @@ import { computeVariableResistor, toVolts, toAmps } from "./utils";
 export default class VariableResistorPage extends React.Component {
   constructor(props) {
     super(props);
-    let parsed = null;
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = window.localStorage.getItem('variable_resistor_calc');
-        parsed = saved ? JSON.parse(saved) : null;
-      } catch { /* ignore */ }
-    }
     this.state = {
       submitting: false,
-      results: parsed?.results || null,
+      results: null,
       error: null,
-      savedInputs: parsed?.inputs || null,
+      savedInputs: null,
     };
+  }
+
+  componentDidMount() {
+    try { window.localStorage.removeItem('variable_resistor_calc'); } catch { /* ignore */ }
   }
 
   onSubmit = (raw) => {
@@ -62,18 +59,12 @@ export default class VariableResistorPage extends React.Component {
       safety_factor: Number(safety_factor || 1),
     });
 
-    try { window.localStorage.setItem('variable_resistor_calc', JSON.stringify({ inputs, results })); } catch { /* ignore */ }
     this.setState({ results, savedInputs: inputs, error: null });
   };
 
   onResetAll = () => {
-    try { window.localStorage.removeItem('variable_resistor_calc'); } catch { /* ignore */ }
     this.setState({ results: null, error: null, savedInputs: null });
   };
-
-  componentWillUnmount() {
-    try { window.localStorage.removeItem('variable_resistor_calc'); } catch { /* ignore */ }
-  }
 
   downloadResultsCsv = () => {
     const { results } = this.state || {};

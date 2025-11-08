@@ -12,8 +12,9 @@ export const ENVIRONMENTS = [
 
 export const UNIT_WEIGHTS_KG = [14, 21, 50];
 
-export function computeRequiredCurrent({ area_m2, jd_mA_per_m2, coating_factor }) {
-  const I_mA = Number(area_m2 || 0) * Number(jd_mA_per_m2 || 0) * Number(coating_factor || 1);
+export function computeRequiredCurrent({ area_m2, jd_mA_per_m2 }) {
+  // Coating factor fixed to 1 per requirement
+  const I_mA = Number(area_m2 || 0) * Number(jd_mA_per_m2 || 0) * 1;
   return { I_mA, I_A: I_mA / 1000 };
 }
 

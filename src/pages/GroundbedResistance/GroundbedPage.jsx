@@ -4,7 +4,7 @@ import Tabs from "../../components/ui/Tabs";
 import GroundbedForm from "./GroundbedForm";
 import GroundbedResults from "./GroundbedResults";
 import GroundbedInfoCard from "./GroundbedInfoCard";
-import { computeAll, seriesForN } from "./utils";
+import { computeAll, seriesForN, seriesForSpacing } from "./utils";
 
 export default class GroundbedPage extends React.Component {
   constructor(props) {
@@ -32,11 +32,17 @@ export default class GroundbedPage extends React.Component {
 
         const calc = computeAll({ config, rho_cm, L_m, d_m, N, spacing_m, F: Fnum });
         const series = (config.includes("multiple")) ? seriesForN({ maxN: Math.max(5, Math.min(40, N || 20)), R_single: calc.R_single, spacing_m, L_m }) : [];
+        const sMin = Math.max(0.5, (spacing_m || 1) * 0.25);
+        const sMax = Math.max(sMin + 5, (spacing_m || 1) * 4);
+        const sStep = Math.max(0.1, (spacing_m || 1) / 10);
+        const spacingSeries = seriesForSpacing({ config, rho_cm, L_m, d_m, spacingMin: sMin, spacingMax: sMax, step: sStep, N });
         this.setState({
           results: {
             R_single: calc.R_single,
             R_total: calc.R_total,
             series,
+            spacingSeries,
+            spacing_m,
             unitLabel: "Ω",
           },
           activeTab: "results",

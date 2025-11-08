@@ -71,6 +71,27 @@ export default class VariableResistorPage extends React.Component {
     this.setState({ results: null, error: null, savedInputs: null });
   };
 
+  componentWillUnmount() {
+    try { window.localStorage.removeItem('variable_resistor_calc'); } catch { /* ignore */ }
+  }
+
+  downloadResultsCsv = () => {
+    const { results } = this.state || {};
+    if (!results) return;
+    const rows = [
+      ['metric','value','unit'],
+      ['V_required', Number(results.V_required||0), 'V'],
+      ['P_required', Number(results.P_required||0), 'W'],
+      ['I_rectifier', Number(results.I_rectifier||0), 'A'],
+      ['V_rectifier', Number(results.V_rectifier||0), 'V'],
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replaceAll('"','""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'variable-resistor-results.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
   render() {
     const { submitting, results, error, savedInputs } = this.state;
 
@@ -91,13 +112,18 @@ export default class VariableResistorPage extends React.Component {
             <ModuleCard
               title="Variable Resistor Equations"
               subtitle="Required voltage, ratings, and power"
-              actions={<span className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900">Formula</span>}
+              actions={
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={this.downloadResultsCsv} className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">CSV</button>
+                  <ResetPill onClick={this.onResetAll} />
+                </div>
+              }
             >
               <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Required voltage:  V_required = I_required · R_circuit + V_driving + V_anode
 Current rating:    I_rectifier = I_required × Safety Factor
 Voltage rating:    V_rectifier = V_required × Safety Factor
 Power:             P = V_required · I_required`}</pre>
-              <div className="mt-2"><ResetPill onClick={this.onResetAll} /></div>
+              
             </ModuleCard>
             <div className="space-y-4">
               <VariableResistorResults results={results} />

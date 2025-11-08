@@ -88,6 +88,10 @@ export default class TankMMOPage extends React.Component {
     this.setState({ results: null, error: null, savedInputs: null });
   };
 
+  componentWillUnmount() {
+    try { window.localStorage.removeItem('tank_mmo_calc'); } catch { /* ignore */ }
+  }
+
   downloadResultsCsv = () => {
     const { results } = this.state || {};
     if (!results) return;

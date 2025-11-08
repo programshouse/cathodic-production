@@ -26,8 +26,6 @@ export default function CoatingFactorsResults({ results }) {
           value={final}
           unit={unitLabel}
           precision={4}
-          csvData={[["metric","value","unit"],["f_c", final, unitLabel]]}
-          csvFilename={`coating-factors-result.csv`}
         />
       </ModuleCard>
       <ModuleCard title="Equation">

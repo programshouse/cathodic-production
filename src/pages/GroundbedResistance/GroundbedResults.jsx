@@ -5,7 +5,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 
 export default function GroundbedResults({ results }) {
   if (!results) return null;
-  const { R_single, R_total, series, unitLabel = "Ω" } = results;
+  const { R_single, R_total, series, spacingSeries = [], spacing_m, unitLabel = "Ω" } = results;
 
   const fmt = (n, digits = 3) => {
     const num = Number(n || 0);
@@ -27,8 +27,6 @@ export default function GroundbedResults({ results }) {
             value={R_total}
             unit={unitLabel}
             precision={3}
-            csvData={[["metric","value","unit"],["R_total", R_total, unitLabel]]}
-            csvFilename={`groundbed-resistance-total.csv`}
           />
           <ResultValue
             label="Single-Anode Resistance"
@@ -36,8 +34,6 @@ export default function GroundbedResults({ results }) {
             value={R_single}
             unit={unitLabel}
             precision={3}
-            csvData={[["metric","value","unit"],["R_single", R_single, unitLabel]]}
-            csvFilename={`groundbed-resistance-single.csv`}
           />
         </div>
       </ModuleCard>
@@ -75,6 +71,25 @@ Multiple in Parallel: R_total = R_single / (N × F)`}</pre>
           </div>
         ) : null}
       </ModuleCard>
+
+      {Array.isArray(spacingSeries) && spacingSeries.length > 0 ? (
+        <ModuleCard title="Resistance vs Spacing" subtitle="Effect of anode spacing on total resistance">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={spacingSeries} margin={{ top: 8, right: 16, left: 40, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="a" tick={{ fontSize: 12 }} label={{ value: "Spacing (m)", position: "insideBottomRight", offset: -4 }} />
+                <YAxis domain={[0, Math.max(...spacingSeries.map(d=>Number(d.value)||0))*1.25 || 10]} tick={{ fontSize: 12 }} tickFormatter={(v)=>fmt(v)} label={{ value: unitLabel, angle: -90, position: 'insideLeft' }} />
+                {Number(spacing_m) > 0 && (
+                  <ReferenceLine x={Number(spacing_m)} stroke="#ef4444" strokeDasharray="4 2" label={{ value: `s=${fmt(spacing_m,2)} m`, position: 'right', fill: '#ef4444', fontSize: 12 }} />
+                )}
+                <Tooltip formatter={(v) => `${fmt(v)} ${unitLabel}`} labelFormatter={(l) => `s = ${Number(l).toFixed(2)} m`} />
+                <Line type="monotone" dataKey="value" name="R_total" stroke="#0ea5e9" dot={false} strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </ModuleCard>
+      ) : null}
     </div>
   );
 }

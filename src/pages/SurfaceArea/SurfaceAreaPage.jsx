@@ -34,6 +34,10 @@ export default class SurfaceAreaPage extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    try { window.localStorage.removeItem('surface_area_calc'); } catch { /* ignore */ }
+  }
+
   setError = (msg) => this.setState({ error: msg });
 
   clearError = () => this.setState({ error: null });

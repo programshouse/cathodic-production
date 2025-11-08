@@ -11,13 +11,7 @@ export default function VariableResistorResults({ results }) {
   );
 
   const { V_required = 0, I_rectifier = 0, V_rectifier = 0, P_required = 0 } = results || {};
-  const allRows = [
-    { Label: "Required Voltage", Value: Number(V_required)||0, Unit: "V" },
-    { Label: "Power Requirement", Value: Number(P_required)||0, Unit: "W" },
-    { Label: "Rectifier Current Rating", Value: Number(I_rectifier)||0, Unit: "A" },
-    { Label: "Rectifier Voltage Rating", Value: Number(V_rectifier)||0, Unit: "V" },
-  ];
-  const filename = "variable_resistor_results.csv";
+  
   const voltageData = [
     { name: "Voltage", Required: Number(V_required) || 0, Rated: Number(V_rectifier) || 0 },
   ];
@@ -33,10 +27,10 @@ export default function VariableResistorResults({ results }) {
         subtitle={<span className="inline-flex items-center gap-2"><span className="text-xs uppercase tracking-wide text-gray-500">Formula</span><span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border text-gray-700 dark:text-gray-300">{formula}</span></span>}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ResultValue label="Required Voltage" value={Number(V_required)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Power Requirement" value={Number(P_required)||0} unit="W" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Rectifier Current Rating" value={Number(I_rectifier)||0} unit="A" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Rectifier Voltage Rating" value={Number(V_rectifier)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
+          <ResultValue label="Required Voltage" value={Number(V_required)||0} unit="V" precision={3} />
+          <ResultValue label="Power Requirement" value={Number(P_required)||0} unit="W" precision={3} />
+          <ResultValue label="Rectifier Current Rating" value={Number(I_rectifier)||0} unit="A" precision={3} />
+          <ResultValue label="Rectifier Voltage Rating" value={Number(V_rectifier)||0} unit="V" precision={3} />
         </div>
       </ModuleCard>
 

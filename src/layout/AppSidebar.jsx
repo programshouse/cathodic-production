@@ -32,7 +32,6 @@ const navItems = [
   { name: "Groundbed Resistance",                     icon: <MdLandscape />,          path: "/pages/groundbed-resistance" },
   { name: "Impressed Current System Calculation",     icon: <MdBolt />,               path: "/pages/impressed-current" },
   { name: "Interference Calculation",                 icon: <MdWifiTethering />,      path: "/pages/interference" },
-  { name: "Rectifier Ratings",                        icon: <MdPowerSettingsNew />,   path: "/pages/rectifier-ratings" },
   { name: "Soil Resistivity",                         icon: <MdScience />,            path: "/pages/soil-resistivity" },
   { name: "Solar Sizing",                             icon: <MdSolarPower />,         path: "/pages/solar-sizing" },
   { name: "Surface Area Calculation",                 icon: <MdGridOn />,             path: "/pages/surface-area" },

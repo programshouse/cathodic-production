@@ -25,8 +25,11 @@ import AttenuationPage from "./pages/Attenuation/AttenuationPage";
 import VoltageGradientPage from "./pages/VoltageGradient/VoltageGradientPage";
 import SoilResistivityPage from "./pages/SoilResistivity/SoilResistivityPage";
 import ResistorSizingPage from "./pages/ResistorSizing/ResistorSizingPage";
+import InterferencePage from "./pages/Interference/InterferencePage";
 import VariableResistorPage from "./pages/VariableResistor/VariableResistorPage";
 import BarnesLayerPage from "./pages/BarnesLayer/BarnesLayerPage";
+import SolarSizingPage from "./pages/SolarSizing/SolarSizingPage";
+import TankMMOPage from "./pages/TankMMOSizing/TankMMOPage";
 
 
 // GuestOnlyRoute: only guests (not logged-in)
@@ -52,9 +55,12 @@ const router = createBrowserRouter([
           { path: "/pages/circuit-resistance", element: <CircuitResistancePage /> },
           { path: "/pages/galvanic-anode", element: <GalvanicPage /> },
           { path: "/pages/impressed-current", element: <ImpressedPage /> },
+          { path: "/pages/interference", element: <InterferencePage /> },
           { path: "/pages/attenuation", element: <AttenuationPage /> },
           { path: "/pages/voltage-gradient", element: <VoltageGradientPage /> },
           { path: "/pages/soil-resistivity", element: <SoilResistivityPage /> },
+          { path: "/pages/solar-sizing", element: <SolarSizingPage /> },
+          { path: "/pages/tank-mmo-sizing", element: <TankMMOPage /> },
           { path: "/pages/resistor-sizing", element: <VariableResistorPage /> },
           { path: "/pages/Variable-Resistor-Shunt", element: <ResistorSizingPage /> },
           { path: "/pages/variable-resistor-shunt", element: <Navigate to="/pages/Variable-Resistor-Shunt" replace /> },

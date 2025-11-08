@@ -300,6 +300,22 @@ layer(base);
   }
 }
 
+/* Brand focus styles for inputs (dark blue) */
+@layer base {
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input:not([type]),
+  select,
+  textarea {
+    @apply transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-600 dark:focus:ring-brand-400 dark:focus:border-brand-400;
+  }
+}
+
 .tableCheckbox:checked ~ span span {
   @apply opacity-100;
 }

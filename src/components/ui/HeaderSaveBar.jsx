@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { addItem, getActiveProjectId, getProject } from "../../lib/history";
 import domtoimage from "dom-to-image-more";
 import jsPDF from "jspdf";
-import axios from "axios";
+import { toast } from "react-toastify";
 import { useCalculationStore } from "../../stores/useCalculationStore";
+import FolderPickerModal from "../ui/FolderPickerModal";
 
 // Map your moduleKey → formula_name
 const KEY_TO_FORMULA = {
@@ -25,50 +26,6 @@ const KEY_TO_FORMULA = {
   resistor_sizing_calc: "Resistor Sizing",
 };
 
-/* ---------------- Server folder resolver (inline) ---------------- */
-const API_ROOT = "https://www.programshouse.com/cp/api"; // no trailing slash
-const foldersApi = axios.create({ baseURL: `${API_ROOT}/folders` });
-
-const authHeaders = () => {
-  const t = localStorage.getItem("access_token");
-  return t ? { Authorization: `Bearer ${t}` } : {};
-};
-
-// Try to find a folder by exact name (adapt params if your API uses a different query key)
-async function findServerFolderByName(name) {
-  if (!name) return null;
-  const { data } = await foldersApi.get("", {
-    headers: authHeaders(),
-    params: { name },
-  });
-  const list =
-    Array.isArray(data) ? data :
-    Array.isArray(data?.data) ? data.data :
-    Array.isArray(data?.items) ? data.items :
-    Array.isArray(data?.result) ? data.result : [];
-  return list.find((x) => (x?.name || "").toLowerCase() === String(name).toLowerCase()) || null;
-}
-
-async function createServerFolder(name) {
-  const { data } = await foldersApi.post(
-    "",
-    { name },
-    { headers: { ...authHeaders(), "Content-Type": "application/json" } }
-  );
-  return data?.data ?? data?.result ?? data?.item ?? data;
-}
-
-// Ensure a server folder exists and return its numeric id
-async function ensureServerFolderId(projectName) {
-  const existing = await findServerFolderByName(projectName);
-  if (existing?.id != null) return Number(existing.id);
-  const created = await createServerFolder(projectName || "Default Project");
-  if (created?.id == null) throw new Error("Folder creation returned no id");
-  return Number(created.id);
-}
-
-/* ---------------------------------------------------------------- */
-
 export default function HeaderSaveBar({
   moduleKey,
   moduleLabel,
@@ -77,13 +34,13 @@ export default function HeaderSaveBar({
   captureRef,
   // optional
   formulaName,   // explicit override for formula name
-  modulePath,    // e.g. "/pages/surface-area" (goes to meta)
-  buildName,     // function to build 'name' (receives {moduleLabel, inputs, results, project})
+  modulePath,    // e.g. "/pages/surface-area"
+  buildName,     // function: ({ moduleLabel, inputs, results, project }) => string
 }) {
   const [busy, setBusy] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const canSave = !!inputs && !!results;
 
-  // Resolve formula name from props or fallbacks
   const resolvedFormulaName =
     formulaName ||
     KEY_TO_FORMULA[moduleKey] ||
@@ -94,25 +51,24 @@ export default function HeaderSaveBar({
     const dt = new Date();
     const stamp = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`;
     return `${moduleLabel || resolvedFormulaName} • ${stamp}`;
+    };
+
+  const onClickSave = () => {
+    if (!canSave || busy) return;
+    // Open folder picker modal
+    setPickerOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!canSave || busy) return;
+  const handlePickedFolder = async (folderId /*, folderName */) => {
+    // Called by modal when user confirms
+    setPickerOpen(false);
     setBusy(true);
+
+    const projectName = getProject(getActiveProjectId())?.name || "Default Project";
+
+    const toastId = toast.loading("Saving calculation…");
     try {
-      // Resolve local active project
-      const localProjectId = getActiveProjectId();
-      const project = getProject(localProjectId);
-
-      if (!localProjectId || !project?.name) {
-        alert("No active project selected. Please choose a project/folder first.");
-        return;
-      }
-
-      // Resolve a VALID SERVER folder_id by project name
-      const serverFolderId = await ensureServerFolderId(project.name);
-
-      // Optional screenshot of the right column
+      // Optional screenshot
       let imageDataUrl = null;
       if (captureRef?.current) {
         imageDataUrl = await domtoimage.toPng(captureRef.current, {
@@ -122,7 +78,7 @@ export default function HeaderSaveBar({
         });
       }
 
-      // Local history entry (UX/offline)
+      // Local snapshot history
       addItem({
         moduleKey,
         label: moduleLabel || resolvedFormulaName,
@@ -132,35 +88,35 @@ export default function HeaderSaveBar({
         ts: Date.now(),
       });
 
-      // Build title & name
-      const title = `${moduleLabel || resolvedFormulaName} — ${project.name}`;
+      // Build title/name
+      const title = `${moduleLabel || resolvedFormulaName} — ${projectName}`;
       const name =
         typeof buildName === "function"
-          ? buildName({ moduleLabel, inputs, results, project })
+          ? buildName({ moduleLabel, inputs, results, project: { name: projectName } })
           : makeDefaultName();
 
-      // POST via store — includes folder_id, name, status
+      // Remote save
       const { submitCalculation } = useCalculationStore.getState();
       await submitCalculation({
-        folder_id: Number(serverFolderId),         // ✅ server verified
-        name,                                      // ✅ required
-        formula_name: resolvedFormulaName,         // ✅ required
+        folder_id: Number(folderId),
+        name,
+        formula_name: resolvedFormulaName,
         title,
         inputs,
         results: { ...results },
         status: "completed",
         meta: {
-          project_name: project.name,
+          project_name: projectName,
           module_key: moduleKey,
-          screenshot_png_b64: imageDataUrl,        // remove if server doesn't accept it
+          screenshot_png_b64: imageDataUrl, // remove if backend rejects images
           ...(modulePath ? { module_path: modulePath } : {}),
         },
       });
 
-      alert("Saved to project history & remote storage.");
+      toast.update(toastId, { render: "Saved successfully", type: "success", isLoading: false, autoClose: 1500 });
     } catch (e) {
-      console.error(e);
-      alert(e?.response?.data?.message || "Failed to save.");
+      const msg = e?.response?.data?.message || e?.message || "Failed to save";
+      toast.update(toastId, { render: msg, type: "error", isLoading: false, autoClose: 2500 });
     } finally {
       setBusy(false);
     }
@@ -169,6 +125,7 @@ export default function HeaderSaveBar({
   const handleExportPdf = async () => {
     if (busy) return;
     setBusy(true);
+    const t = toast.loading("Preparing PDF…");
     try {
       const doc = new jsPDF({ unit: "px", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
@@ -229,37 +186,48 @@ export default function HeaderSaveBar({
         y += lineHeight;
       }
 
-      doc.save(`${(moduleKey || "calc")}-export-${Date.now()}.pdf`);
+      const safeBase = (moduleKey || "calc").replace(/[\\/:*?"<>|]+/g, "_");
+      doc.save(`${safeBase}-export-${Date.now()}.pdf`);
+      toast.update(t, { render: "PDF exported", type: "success", isLoading: false, autoClose: 1500 });
     } catch (e) {
-      console.error(e);
-      alert("Failed to export PDF.");
+      toast.update(t, { render: "Failed to export PDF", type: "error", isLoading: false, autoClose: 2500 });
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={!canSave || busy}
-        className={`text-xs px-3 py-1.5 rounded-full border ${
-          canSave ? "bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800" : "opacity-60 cursor-not-allowed"
-        }`}
-        title={canSave ? "Save to project history" : "Run a calculation first"}
-      >
-        {busy ? "…" : "Save"}
-      </button>
-      <button
-        type="button"
-        onClick={handleExportPdf}
-        disabled={busy}
-        className="text-xs px-3 py-1.5 rounded-full border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
-        title="Export PDF (screenshot + JSON summary)"
-      >
-        {busy ? "…" : "Export PDF"}
-      </button>
-    </div>
+    <>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onClickSave}
+          disabled={!canSave || busy}
+          className={`text-xs px-3 py-1.5 rounded-full border ${
+            canSave ? "bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800" : "opacity-60 cursor-not-allowed"
+          }`}
+          title={canSave ? "Save to project history (choose server folder)" : "Run a calculation first"}
+        >
+          {busy ? "…" : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={handleExportPdf}
+          disabled={busy}
+          className="text-xs px-3 py-1.5 rounded-full border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
+          title="Export PDF (screenshot + JSON summary)"
+        >
+          {busy ? "…" : "Export PDF"}
+        </button>
+      </div>
+
+      {/* Folder picker modal */}
+      <FolderPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPicked={handlePickedFolder}
+        defaultName="New Project"
+      />
+    </>
   );
 }

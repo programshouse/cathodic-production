@@ -98,8 +98,13 @@ export default function HistoryPage() {
   const handleCreateFolder = async () => {
     const name = prompt("Folder (project) name:");
     if (!name || !name.trim()) return;
-    await create(name.trim());
+    const created = await create(name.trim());
+    // Refresh the list and auto-open the newly created folder
     await fetchFolders();
+    if (created?.id) {
+      setOpenFolderId(created.id);
+      await loadFolderDetails(created.id);
+    }
   };
 
   const handleDeleteFolder = async (folderId, folderName) => {
@@ -163,7 +168,7 @@ export default function HistoryPage() {
 
             return (
               <ModuleCard
-                key={f.id}
+                key={String(f.id)}
                 title={`${f.name || "Untitled Folder"} (ID: ${f.id})`}
                 subtitle={f.created_at ? `Created: ${tsFmt(f.created_at)}` : undefined}
                 actions={
@@ -195,9 +200,7 @@ export default function HistoryPage() {
                 {isOpen ? (
                   <div className="mt-3">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
-                        Folder #{f.id}
-                      </span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">Folder #{f.id}</span>
                       <button
                         type="button"
                         onClick={() => handleRefreshFolder(f.id)}
@@ -220,15 +223,8 @@ export default function HistoryPage() {
                     ) : (
                       <div className="space-y-4">
                         {calcs.map((row) => {
-                          const title =
-                            row?.title ||
-                            row?.formula_name ||
-                            "Calculation";
-                          const stamp =
-                            row?.created_at ||
-                            row?.updated_at ||
-                            row?.ts ||
-                            "";
+                          const title = row?.title || row?.formula_name || "Calculation";
+                          const stamp = row?.created_at || row?.updated_at || row?.ts || "";
                           const status = row?.status ? String(row.status) : "";
 
                           const inputs = row?.inputs ?? {};
@@ -238,11 +234,11 @@ export default function HistoryPage() {
 
                           // yMax like in GalvanicResults
                           const yMax = life && life.length
-                            ? Math.max(...life.map(d => Number(d.weight) || 0), W_required || 0) * 1.25 || 10
+                            ? Math.max(...life.map((d) => Number(d.weight) || 0), W_required || 0) * 1.25 || 10
                             : 10;
 
-                          // Remove lifeSeriesData from results JSON displayed
-                          const { lifeSeriesData, ...resultsNoLife } = results || {};
+                          // ✅ Properly exclude lifeSeriesData so the numbers render
+                          const { ...resultsNoLife } = results || {};
 
                           return (
                             <div
@@ -318,7 +314,7 @@ export default function HistoryPage() {
                                     </div>
                                   ) : null}
 
-                                  {/* Results JSON (without the lifeSeriesData array) */}
+                                  {/* Results JSON (without lifeSeriesData) */}
                                   <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
                                     {JSON.stringify(resultsNoLife ?? {}, null, 2)}
                                   </pre>

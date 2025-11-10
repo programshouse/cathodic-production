@@ -1,364 +1,336 @@
-// src/pages/history/HistoryPage.jsx
+// /src/pages/history/HistoryPage.jsx
 import React from "react";
 import PageLayout from "../../components/ui/PageLayout";
 import PageHeader from "../../components/ui/PageHeader";
 import ModuleCard from "../../components/ui/ModuleCard";
+import { useFoldersStore } from "../../stores/useFoldersStore";
+
+// Recharts (same config as your GalvanicResults)
 import {
-  getProjects,
-  getProject,
-  getActiveProjectId,
-  setActiveProjectId,
-  createProject,
-  renameProject,
-  deleteProject,
-  migrateLegacyIntoDefault,
-} from "../../lib/history";
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
 
-// -------------------------
-// Small utils
-// -------------------------
-const MODULE_LABELS = {
-  voltage_gradient_calc: "Voltage Gradient",
-  attenuation_calc: "Attenuation",
-  interference_calc: "Interference",
-  soil_resistivity_calc: "Soil Resistivity",
-  barnes_layer_calc: "Barnes Layer",
-  coating_factors_calc: "Coating Factors",
-  groundbed_resistance_calc: "Groundbed Resistance",
-  galvanic_calc: "Galvanic Anode",
-  impressed_current_calc: "Impressed Current",
-  variable_resistor_calc: "Variable Resistor",
-  circuit_resistance_calc: "Circuit Resistance",
-  surface_area_calc: "Surface Area",
-};
-
-function tsFmt(ts) {
-  try { return new Date(ts).toLocaleString(); } catch { return ""; }
-}
-
-function sanitizeFilename(name) {
-  return String(name || "export")
-    .replace(/[\\/:*?"<>|]+/g, "_")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// -------------------------
-// html2pdf loader + exporter
-// -------------------------
-let _html2pdfLoading = null;
-async function loadHtml2PdfOnce() {
-  if (typeof window === "undefined") return;
-  if (window.html2pdf) return;
-  if (_html2pdfLoading) return _html2pdfLoading;
-  _html2pdfLoading = new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js";
-    s.async = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("Failed to load html2pdf.js"));
-    document.head.appendChild(s);
-  });
-  return _html2pdfLoading;
-}
-
-/** Render HTML string into an offscreen element and export it to a PDF the user downloads. */
-async function exportHtmlToPdf({ html, filename = "export.pdf" }) {
-  if (typeof window === "undefined") return;
-  await loadHtml2PdfOnce();
-  if (!window.html2pdf) throw new Error("html2pdf not available");
-
-  const wrapper = document.createElement("div");
-  wrapper.style.position = "fixed";
-  wrapper.style.left = "-99999px";
-  wrapper.style.top = "0";
-  wrapper.style.width = "794px"; // ~A4 width at 96dpi
-  wrapper.style.background = "#ffffff";
-
-  const contentEl = document.createElement("div");
-  contentEl.className = "pdf-root";
-  contentEl.style.fontFamily =
-    'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial';
-  contentEl.style.color = "#111827";
-
-  const styleEl = document.createElement("style");
-  styleEl.textContent = `
-    h1{font-size:20px;margin:0 0 4px;}
-    h2{font-size:16px;margin:12px 0 4px;}
-    .sub{color:#6B7280;font-size:12px;margin-bottom:12px;}
-    .two-col{display:grid; grid-template-columns: 1fr 1fr; gap: 12px;}
-    pre{white-space:pre-wrap;word-wrap:break-word;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:12px;font-size:12px;}
-    section{page-break-inside:avoid;margin-bottom:24px;}
-    .img-wrap{margin-top:8px;}
-    .img-wrap img{max-width:100%; border:1px solid #E5E7EB; border-radius:8px;}
-    .page-break{page-break-before:always;}
-  `;
-
-  contentEl.innerHTML = html;
-  wrapper.appendChild(styleEl);
-  wrapper.appendChild(contentEl);
-  document.body.appendChild(wrapper);
-
-  await new Promise(requestAnimationFrame);
-
-  const opt = {
-    margin: [10, 10, 10, 10],
-    filename,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-    pagebreak: { mode: ["css", "legacy"] },
-  };
-
+function tsFmt(v) {
   try {
-    await window.html2pdf().set(opt).from(contentEl).save();
-  } finally {
-    document.body.removeChild(wrapper);
+    const d = typeof v === "number" ? new Date(v) : new Date(String(v));
+    return isNaN(d.getTime()) ? "" : d.toLocaleString();
+  } catch {
+    return "";
   }
 }
 
-// -------------------------
-// Escape helper for safe HTML string building
-// -------------------------
-function escapeHtml(str) {
-  return String(str ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+// Normalize a calc from /folders/:id
+function normalizeCalc(row = {}) {
+  return {
+    ...row,
+    inputs: row.input_values ?? row.inputs ?? {},
+    results: row.result ?? row.results ?? {},
+  };
 }
 
-// -------------------------
-// Page Component
-// -------------------------
+// Same number formatter as in GalvanicResults
+const fmt = (n, digits = 3) => {
+  const num = Number(n || 0);
+  const fixed = num.toFixed(digits);
+  const [i, d] = fixed.split(".");
+  const intFmt = i.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return d ? `${intFmt}.${d}` : intFmt;
+};
+
 export default function HistoryPage() {
-  // one-time migration of legacy single saves into default project
-  React.useEffect(() => { migrateLegacyIntoDefault(); }, []);
+  const {
+    folders,
+    loading: foldersLoading,
+    error: foldersError,
+    fetchFolders,
+    show: showFolder,
+    create,
+    delete: deleteFolder,
+    exportAsPdf,
+  } = useFoldersStore();
 
-  const [projects, setProjects] = React.useState(getProjects());
-  const [activeId, setActiveId] = React.useState(getActiveProjectId() || projects[0]?.id || "");
+  const [openFolderId, setOpenFolderId] = React.useState(null);
+  const [folderDetailsById, setFolderDetailsById] = React.useState({});
+  const [detailLoading, setDetailLoading] = React.useState(false);
+  const [detailError, setDetailError] = React.useState(null);
 
-  React.useEffect(() => { setProjects(getProjects()); }, [activeId]);
+  React.useEffect(() => {
+    fetchFolders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const active = getProject(activeId);
-
-  const onCreateProject = () => {
-    const name = prompt("Project name:", "New Project");
-    if (!name) return;
-    const p = createProject(name.trim());
-    setActiveId(p.id);
-    setActiveProjectId(p.id);
-    setProjects(getProjects());
-  };
-
-  const onRenameProject = () => {
-    if (!active) return;
-    const name = prompt("Rename project:", active.name);
-    if (!name) return;
-    renameProject(active.id, name.trim());
-    setProjects(getProjects());
-  };
-
-  const onDeleteProject = () => {
-    if (!active) return;
-    if (!confirm(`Delete project "${active.name}"? This cannot be undone.`)) return;
-    deleteProject(active.id);
-    const list = getProjects();
-    const next = list[0]?.id || "";
-    setActiveId(next);
-    setActiveProjectId(next);
-    setProjects(list);
-  };
-
-  const onChangeProject = (e) => {
-    const id = e.target.value;
-    setActiveId(id);
-    setActiveProjectId(id);
-  };
-
-  // ---------- Export single entry (now with Results + optional screenshot) ----------
-  const exportEntry = async (it) => {
-    const label = it.label || MODULE_LABELS[it.moduleKey] || it.moduleKey;
-    const title = `${label} — Inputs & Results`;
-
-    const parts = [];
-    parts.push(`<h1>${escapeHtml(title)}</h1>`);
-    parts.push(`<div class="sub">${escapeHtml(tsFmt(it.ts))}</div>`);
-
-    // Two-column Inputs/Results
-    parts.push(`<div class="two-col">
-      <div>
-        <h2>Inputs</h2>
-        <pre>${escapeHtml(it.inputs ? JSON.stringify(it.inputs, null, 2) : "No inputs")}</pre>
-      </div>
-      <div>
-        <h2>Results</h2>
-        <pre>${escapeHtml(it.results ? JSON.stringify(it.results, null, 2) : "No results")}</pre>
-      </div>
-    </div>`);
-
-    // Optional screenshot
-    if (it.screenshotDataUrl) {
-      parts.push(`<div class="img-wrap">
-        <h2>Screenshot</h2>
-        <img src="${escapeHtml(it.screenshotDataUrl)}" alt="Screenshot" />
-      </div>`);
+  const loadFolderDetails = async (folderId) => {
+    setDetailLoading(true);
+    setDetailError(null);
+    try {
+      const res = await showFolder(folderId);
+      const normalized = {
+        ...res,
+        calculations: Array.isArray(res?.calculations)
+          ? res.calculations.map(normalizeCalc)
+          : [],
+      };
+      setFolderDetailsById((prev) => ({ ...prev, [folderId]: normalized }));
+      return normalized;
+    } catch (e) {
+      setDetailError(e?.message || "Failed to load folder details");
+      return null;
+    } finally {
+      setDetailLoading(false);
     }
-
-    const html = parts.join("\n");
-    const filename = `${sanitizeFilename(title)}.pdf`;
-    await exportHtmlToPdf({ html, filename });
   };
 
-  // ---------- Export whole project (loop entries, include Results + screenshot) ----------
-  const exportProject = async () => {
-    if (!active || !active.items?.length) return;
+  const toggleFolder = async (folderId) => {
+    const next = openFolderId === folderId ? null : folderId;
+    setOpenFolderId(next);
+    if (next && !folderDetailsById[next]) {
+      await loadFolderDetails(next);
+    }
+  };
 
-    const blocks = active.items.map((it, idx) => {
-      const label = it.label || MODULE_LABELS[it.moduleKey] || it.moduleKey;
-      const head = `
-        <section ${idx > 0 ? 'class="page-break"' : ""}>
-          <h1>${escapeHtml(label)} — Inputs & Results</h1>
-          <div class="sub">${escapeHtml(tsFmt(it.ts))}</div>
-          <div class="two-col">
-            <div>
-              <h2>Inputs</h2>
-              <pre>${escapeHtml(it.inputs ? JSON.stringify(it.inputs, null, 2) : "No inputs")}</pre>
-            </div>
-            <div>
-              <h2>Results</h2>
-              <pre>${escapeHtml(it.results ? JSON.stringify(it.results, null, 2) : "No results")}</pre>
-            </div>
-          </div>
-      `;
+  const handleCreateFolder = async () => {
+    const name = prompt("Folder (project) name:");
+    if (!name || !name.trim()) return;
+    await create(name.trim());
+    await fetchFolders();
+  };
 
-      const shot = it.screenshotDataUrl
-        ? `<div class="img-wrap">
-             <h2>Screenshot</h2>
-             <img src="${escapeHtml(it.screenshotDataUrl)}" alt="Screenshot" />
-           </div>`
-        : "";
+  const handleDeleteFolder = async (folderId, folderName) => {
+    if (!window.confirm(`Delete folder "${folderName || folderId}"? This cannot be undone.`)) return;
+    await deleteFolder(folderId);
+    setFolderDetailsById((prev) => {
+      const cp = { ...prev };
+      delete cp[folderId];
+      return cp;
+    });
+    if (openFolderId === folderId) setOpenFolderId(null);
+    await fetchFolders();
+  };
 
-      return `${head}${shot}</section>`;
-    }).join("\n");
+  const handleExportFolder = async (folderId) => {
+    await exportAsPdf(folderId);
+  };
 
-    const filename = `${sanitizeFilename(active.name || "Project")} - History.pdf`;
-    await exportHtmlToPdf({ html: blocks, filename });
+  const handleRefreshFolder = async (folderId) => {
+    await loadFolderDetails(folderId);
   };
 
   return (
     <PageLayout title="History | CP">
       <PageHeader
-        title="Projects History"
-        description="Organize saved calculator runs into projects (folders)."
+        title="Server Folders & History"
+        description="Browse folders (projects) and view their calculation runs from the backend."
         actions={
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onCreateProject}
+              onClick={handleCreateFolder}
               className="text-xs px-3 py-1.5 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              New Project
+              New folder
             </button>
             <button
               type="button"
-              onClick={exportProject}
+              onClick={() => fetchFolders()}
               className="text-xs px-3 py-1.5 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-              disabled={!active || !active.items?.length}
             >
-              Export Project (PDF)
+              Refresh folders
             </button>
+            {foldersLoading ? <span className="text-xs text-gray-500 dark:text-gray-400">Loading…</span> : null}
+            {foldersError ? <span className="text-xs text-red-600">{String(foldersError)}</span> : null}
           </div>
         }
       />
 
-      {/* Project selector */}
-      <div className="col-span-12 mb-4">
-        <div className="flex items-center gap-3">
-          <label className="text-sm text-gray-600 dark:text-gray-300">Active project</label>
-          <select
-            value={activeId}
-            onChange={onChangeProject}
-            className="text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-1.5"
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-
-          <button
-            onClick={onRenameProject}
-            className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Rename
-          </button>
-
-          <button
-            onClick={onDeleteProject}
-            className="text-xs px-2 py-1 rounded-full border border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-
-      {/* Items in project */}
-      <div className="space-y-6 col-span-12">
-        {!active || !active.items?.length ? (
+      <div className="col-span-12 space-y-6">
+        {!folders || folders.length === 0 ? (
           <ModuleCard
-            title="No History"
-            subtitle="Run a calculation and save it into this project from the calculator page."
+            title="No folders"
+            subtitle="No server folders found. Create one using the 'New folder' button above."
           />
         ) : (
-          active.items.map((it) => {
-            const label = it.label || MODULE_LABELS[it.moduleKey] || it.moduleKey;
+          folders.map((f) => {
+            const isOpen = openFolderId === f.id;
+            const folderDetails = folderDetailsById[f.id];
+            const calcs = folderDetails?.calculations ?? [];
+
             return (
               <ModuleCard
-                key={it.id}
-                title={label}
-                subtitle={tsFmt(it.ts)}
+                key={f.id}
+                title={`${f.name || "Untitled Folder"} (ID: ${f.id})`}
+                subtitle={f.created_at ? `Created: ${tsFmt(f.created_at)}` : undefined}
                 actions={
-                  <button
-                    type="button"
-                    onClick={() => exportEntry(it)}
-                    className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  >
-                    PDF
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleFolder(f.id)}
+                      className="text-xs px-3 py-1.5 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      {isOpen ? "Hide" : "Show"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleExportFolder(f.id)}
+                      className="text-xs px-3 py-1.5 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      Export PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFolder(f.id, f.name)}
+                      className="text-xs px-3 py-1.5 rounded-full border border-red-300 text-red-700 bg-red-50 hover:bg-red-100"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 }
               >
-                <div className="text-sm text-gray-600 dark:text-gray-300 space-y-3">
-                  {/* Optional screenshot preview */}
-                  {it.screenshotDataUrl ? (
-                    <div className="mb-2">
-                      <a href={it.screenshotDataUrl} target="_blank" rel="noreferrer">
-                        <img
-                          src={it.screenshotDataUrl}
-                          alt="Screenshot"
-                          className="max-w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700"
-                          style={{ maxHeight: 320 }}
-                        />
-                      </a>
+                {isOpen ? (
+                  <div className="mt-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        Folder #{f.id}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRefreshFolder(f.id)}
+                        className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        Refresh
+                      </button>
+                      {detailLoading ? (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Loading…</span>
+                      ) : null}
+                      {detailError ? (
+                        <span className="text-xs text-red-600">{String(detailError)}</span>
+                      ) : null}
                     </div>
-                  ) : null}
 
-                  {/* Inputs + Results side-by-side on wide screens */}
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                    <div>
-                      <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">Inputs</div>
-                      <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
-                        {JSON.stringify(it.inputs || {}, null, 2)}
-                      </pre>
-                    </div>
-                    <div>
-                      <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">Results</div>
-                      <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
-                        {JSON.stringify(it.results || {}, null, 2)}
-                      </pre>
-                    </div>
+                    {!calcs || calcs.length === 0 ? (
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        No calculations in this folder.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {calcs.map((row) => {
+                          const title =
+                            row?.title ||
+                            row?.formula_name ||
+                            "Calculation";
+                          const stamp =
+                            row?.created_at ||
+                            row?.updated_at ||
+                            row?.ts ||
+                            "";
+                          const status = row?.status ? String(row.status) : "";
+
+                          const inputs = row?.inputs ?? {};
+                          const results = row?.results ?? {};
+                          const life = Array.isArray(results?.lifeSeriesData) ? results.lifeSeriesData : null;
+                          const W_required = Number(results?.W_required || 0);
+
+                          // yMax like in GalvanicResults
+                          const yMax = life && life.length
+                            ? Math.max(...life.map(d => Number(d.weight) || 0), W_required || 0) * 1.25 || 10
+                            : 10;
+
+                          // Remove lifeSeriesData from results JSON displayed
+                          const { lifeSeriesData, ...resultsNoLife } = results || {};
+
+                          return (
+                            <div
+                              key={row?.id || `${title}-${stamp}`}
+                              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-4"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                  {title}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  {tsFmt(stamp)}{status ? ` • ${status}` : ""}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                                {/* Inputs */}
+                                <div>
+                                  <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">Inputs</div>
+                                  <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
+                                    {JSON.stringify(inputs, null, 2)}
+                                  </pre>
+                                </div>
+
+                                {/* Results + Chart */}
+                                <div>
+                                  <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">Results</div>
+
+                                  {/* Chart from lifeSeriesData (not shown as numbers) */}
+                                  {life && life.length ? (
+                                    <div className="mb-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-2 h-64">
+                                      <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={life} margin={{ top: 8, right: 16, left: 40, bottom: 0 }}>
+                                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                          <XAxis
+                                            dataKey="year"
+                                            tick={{ fontSize: 12 }}
+                                            label={{ value: "Years", position: "insideBottomRight", offset: -4 }}
+                                          />
+                                          <YAxis
+                                            domain={[0, yMax]}
+                                            tick={{ fontSize: 12 }}
+                                            tickFormatter={(v) => fmt(v, 2)}
+                                            label={{ value: "kg", angle: -90, position: "insideLeft" }}
+                                          />
+                                          <Tooltip
+                                            formatter={(v) => `${fmt(v, 2)} kg`}
+                                            labelFormatter={(l) => `Year ${l}`}
+                                          />
+                                          {Number.isFinite(W_required) && W_required > 0 ? (
+                                            <ReferenceLine
+                                              y={W_required}
+                                              stroke="#2563eb"
+                                              strokeDasharray="4 2"
+                                              label={{
+                                                value: `At t: ${fmt(W_required, 2)} kg`,
+                                                position: "right",
+                                                fill: "#2563eb",
+                                                fontSize: 12,
+                                              }}
+                                            />
+                                          ) : null}
+                                          <Line
+                                            type="monotone"
+                                            dataKey="weight"
+                                            name="Required Weight"
+                                            stroke="#3b82f6"
+                                            dot={false}
+                                            strokeWidth={2}
+                                          />
+                                        </LineChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                  ) : null}
+
+                                  {/* Results JSON (without the lifeSeriesData array) */}
+                                  <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
+                                    {JSON.stringify(resultsNoLife ?? {}, null, 2)}
+                                  </pre>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
+                ) : null}
               </ModuleCard>
             );
           })

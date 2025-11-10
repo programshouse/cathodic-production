@@ -124,7 +124,7 @@ export default class GalvanicPage extends React.Component {
         captureRef={this.captureRef}
         // optional but explicit:
         formulaName="Galvanic Anode System Calculation"
-        buildName={({ moduleLabel, inputs, project }) =>
+        buildName={({  inputs, project }) =>
           `${project?.name || "Default"} • ${inputs?.material || "—"} • ${inputs?.area_m2 || 0} m²`
         }
       />

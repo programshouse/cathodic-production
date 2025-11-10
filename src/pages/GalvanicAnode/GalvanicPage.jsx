@@ -1,3 +1,4 @@
+// /src/pages/galvanic/GalvanicPage.jsx
 import React from "react";
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import Tabs from "../../components/ui/Tabs";
@@ -19,11 +20,11 @@ export default class GalvanicPage extends React.Component {
       error: null,
       activeTab: "results",
     };
-    // This MUST be attached to a real element in render()
     this.captureRef = React.createRef();
   }
 
-  onSubmit = (e) => {
+  onSubmit = async (e) => {
+    e.preventDefault();
     this.setState({ submitting: true, error: null }, () => {
       try {
         const fd = new FormData(e.target);
@@ -37,24 +38,41 @@ export default class GalvanicPage extends React.Component {
         const etaNum = eta === null || eta === "" ? undefined : Number(eta);
 
         const submittedInputs = {
-          area_m2, jd_mA_per_m2, coating_factor,
-          design_life_years, material, anode_weight_kg, eta: etaNum
+          area_m2,
+          jd_mA_per_m2,
+          coating_factor,
+          design_life_years,
+          material,
+          anode_weight_kg,
+          eta: etaNum,
         };
 
+        // Local calculation only (no API here)
         const calc = computeGalvanic({
-          area_m2, jd_mA_per_m2, coating_factor,
-          design_life_years, material, eta: etaNum, anode_weight_kg
+          area_m2,
+          jd_mA_per_m2,
+          coating_factor,
+          design_life_years,
+          material,
+          eta: etaNum,
+          anode_weight_kg,
         });
 
         const lifeSeriesData = lifeSeries({
-          area_m2, jd_mA_per_m2, coating_factor,
+          area_m2,
+          jd_mA_per_m2,
+          coating_factor,
           years_max: Math.max(5, design_life_years || 30),
-          material, eta: etaNum, anode_weight_kg
+          material,
+          eta: etaNum,
+          anode_weight_kg,
         });
 
+        const results = { ...calc, lifeSeriesData };
+
         this.setState({
-          results: { ...calc, lifeSeriesData },
-          savedInputs: submittedInputs,   // <— used by HeaderSaveBar
+          results,
+          savedInputs: submittedInputs, // HeaderSaveBar uses these
           activeTab: "results",
         });
       } catch (err) {
@@ -65,7 +83,14 @@ export default class GalvanicPage extends React.Component {
     });
   };
 
-  onResetAll = () => this.setState({ results: null, savedInputs: null, error: null, activeTab: "results" });
+  onResetAll = () =>
+    this.setState({
+      results: null,
+      savedInputs: null,
+      error: null,
+      activeTab: "results",
+    });
+
   setTab = (key) => this.setState({ activeTab: key });
 
   InfoCard = () => (
@@ -79,7 +104,7 @@ export default class GalvanicPage extends React.Component {
         <ul className="list-disc pl-6">
           {MATERIALS.map((m) => (
             <li key={m.value}>
-              {m.label}: {m.capacity_Ah_per_kg} Ah/kg • η≈{(m.eta_default*100).toFixed(0)}%
+              {m.label}: {m.capacity_Ah_per_kg} Ah/kg • η≈{(m.eta_default * 100).toFixed(0)}%
             </li>
           ))}
         </ul>
@@ -96,14 +121,19 @@ export default class GalvanicPage extends React.Component {
         moduleLabel="Galvanic Anode"
         inputs={savedInputs}
         results={results}
-        captureRef={this.captureRef}   // <— HeaderSaveBar will screenshot this
+        captureRef={this.captureRef}
+        // optional but explicit:
+        formulaName="Galvanic Anode System Calculation"
+        buildName={({ moduleLabel, inputs, project }) =>
+          `${project?.name || "Default"} • ${inputs?.material || "—"} • ${inputs?.area_m2 || 0} m²`
+        }
       />
     );
 
     return (
       <CalculatorPanel
         headerActions={headerActions}
-        left={(
+        left={
           <div>
             {error ? (
               <div className="mb-3 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 px-4 py-3 text-sm">
@@ -112,9 +142,8 @@ export default class GalvanicPage extends React.Component {
             ) : null}
             <GalvanicForm onSubmit={this.onSubmit} submitting={submitting} onReset={this.onResetAll} />
           </div>
-        )}
-        right={(
-          // ATTACH THE REF HERE so the whole right column (info, tabs, results/chart) is captured
+        }
+        right={
           <div className="space-y-4" ref={this.captureRef}>
             <this.InfoCard />
             <Tabs
@@ -125,10 +154,10 @@ export default class GalvanicPage extends React.Component {
               activeKey={activeTab}
               onChange={this.setTab}
             />
-            {activeTab === "results" && (<GalvanicResults results={results} />)}
-            {activeTab === "reference" && (<GalvanicReference />)}
+            {activeTab === "results" && <GalvanicResults results={results} />}
+            {activeTab === "reference" && <GalvanicReference />}
           </div>
-        )}
+        }
       />
     );
   }

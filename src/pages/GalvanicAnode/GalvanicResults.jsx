@@ -3,7 +3,7 @@ import ModuleCard from "../../components/ui/ModuleCard";
 import ResultValue from "../../components/ui/ResultValue";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 
-export default function GalvanicResults({ results }) {
+export default function GalvanicResults({ results, captureRef }) {
   if (!results) return null;
   const { I, W_required, N, lifeSeriesData } = results;
 
@@ -15,10 +15,11 @@ export default function GalvanicResults({ results }) {
     return d ? `${intFmt}.${d}` : intFmt;
   };
 
-  const yMax = Math.max(...(lifeSeriesData || []).map((d) => d.weight), W_required) * 1.25 || 10;
+  const yMax =
+    Math.max(...(lifeSeriesData || []).map((d) => d.weight), W_required || 0) * 1.25 || 10;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" ref={captureRef}>
       <ModuleCard title="Key Results">
         <div className="space-y-4">
           <ResultValue
@@ -50,6 +51,7 @@ export default function GalvanicResults({ results }) {
           />
         </div>
       </ModuleCard>
+
       <ModuleCard title="Equations" subtitle="I = A × Jd × f_c;  W_required = I × t × 8760 / (U × η);  N = W_required / W_single">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
           <div>

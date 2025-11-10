@@ -1,13 +1,10 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
-import { COATING_TYPES, temperatureFactor, soilFactor } from "./utils";
+import { COATING_TYPES } from "./utils";
 
-export default function CoatingFactorsReference({ temperatureC = 25, soilType = "sandy" }) {
-  const tf = temperatureFactor(Number(temperatureC));
-  const sf = soilFactor(soilType);
-
+export default function CoatingFactorsReference() {
   return (
-    <ModuleCard title="Coating Breakdown Factors Reference" subtitle={`Temperature Factor: ${tf.toFixed(2)} • Soil Factor: ${sf.toFixed(2)}`}>
+    <ModuleCard title="Coating Breakdown Factors Reference" subtitle={"Linear model: f_f = f_i + (Δf × t)"}>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800 text-sm">
           <thead className="bg-gray-50 dark:bg-gray-800/60">

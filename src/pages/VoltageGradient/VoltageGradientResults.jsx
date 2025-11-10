@@ -156,7 +156,7 @@ export default function VoltageGradientResults({ results }) {
       </ModuleCard>
 
       {/* Profiles chart */}
-      <ModuleCard title="Profiles" subtitle="Voltage gradient and potential vs distance from anode">
+      <ModuleCard title="Attenuation & Pipeline Potential Profile" subtitle="Voltage gradient and potential vs distance from anode">
         <div className="h-72">
           <ResponsiveContainer>
             <LineChart data={Array.isArray(data) ? data : []} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>

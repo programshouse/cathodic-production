@@ -98,33 +98,40 @@ const AppSidebar = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex py-8 lg:justify-center">
-        <Link to="/">
-          {isExpanded || isHovered || isMobileOpen ? (
-            <>
-              <img
-                className="dark:hidden rounded-full"
-                src="/images/logo/logoos.jpg"
-                alt="logoos"
-                width={140}
-                height={50}
-              />
-              <img
-                className="hidden dark:block"
-                src="/images1/logo/logoos-dark.svg"
-                alt="logoos"
-                width={100}
-                height={30}
-              />
-            </>
-          ) : (
-            <img
-              src="/images/logo/logoos.jpg"
-              alt="logoos"
-              width={150}
-              height={120}
-            />
-          )}
-        </Link>
+<Link
+  to="/"
+  className="block w-full sm:w-auto" // take full width on mobile so centering works
+>
+  <div className="flex sm:justify-start justify-center">
+    {isExpanded || isHovered || isMobileOpen ? (
+      <>
+        <img
+          className="block dark:hidden rounded-full sm:mx-0 mx-auto"
+          src="/images/logo/logoos.jpg"
+          alt="logoos"
+          width={140}
+          height={50}
+        />
+        <img
+          className="hidden dark:block sm:mx-0 mx-auto"
+          src="/images1/logo/logoos-dark.svg"
+          alt="logoos"
+          width={100}
+          height={30}
+        />
+      </>
+    ) : (
+      <img
+        className="align-middle rounded-full sm:mx-0 mx-auto"
+        src="/images/logo/logoos.jpg"
+        alt="logoos"
+        width={150}
+        height={120}
+      />
+    )}
+  </div>
+</Link>
+
       </div>
 
       <nav className="no-scrollbar flex flex-col overflow-y-auto pb-6 duration-300 ease-linear">

@@ -38,7 +38,7 @@ export default function AttenuationResults({ results }) {
         </div>
       </ModuleCard>
 
-      <ModuleCard title="Potential Attenuation Along Pipeline" subtitle="V(x) along distance from drain point">
+      <ModuleCard title="Attenuation & Pipeline Potential Profile" subtitle="V(x) along distance from drain point">
         <div className="h-64">
           <ResponsiveContainer>
             <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>

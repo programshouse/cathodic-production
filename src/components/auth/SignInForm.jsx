@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
+import { Link } from "react-router";
 import Button from "../ui/button/Button";
 import { useAuthStore } from "../../stores/useAuthStore"; // ✅ fixed path
 import { Formik } from "formik";
@@ -153,8 +154,20 @@ export default function SignInForm() {
                   </div>
                 </div>
               </form>
+              
             )}
           </Formik>
+                      <div className="mt-5">
+              <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
+              Don't have an account? {""}
+                <Link
+                  to="/signup"
+                  className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                >
+                  Sign up
+                </Link>
+              </p>
+            </div>
         </div>
       </div>
     </div>

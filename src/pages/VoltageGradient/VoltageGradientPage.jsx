@@ -1,8 +1,10 @@
+// /src/pages/voltage-gradient/VoltageGradientPage.jsx
 import React from "react";
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import Tabs from "../../components/ui/Tabs";
 import ModuleCard from "../../components/ui/ModuleCard";
 import ResetPill from "../../components/ui/ResetPill";
+import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 import VoltageGradientForm from "./VoltageGradientForm";
 import VoltageGradientResults from "./VoltageGradientResults";
@@ -31,11 +33,14 @@ export default class VoltageGradientPage extends React.Component {
       activeTab: "results",
       savedInputs: parsed?.inputs || null,
     };
+
+    // Right pane ref for HeaderSaveBar screenshot/PDF capture
+    this.captureRef = React.createRef();
   }
 
   // Unified handler: supports both (e) form submit and (inputsObj) direct-call
   onSubmit = (arg) => {
-    // If it's a form submit event
+    // Form submit path
     if (arg && typeof arg.preventDefault === "function") {
       arg.preventDefault();
       const e = arg;
@@ -44,7 +49,6 @@ export default class VoltageGradientPage extends React.Component {
         try {
           const fd = new FormData(e.target);
 
-          // Read values
           const sourceType = fd.get("sourceType") || "";
           const I = Number(fd.get("I") || 0);
           const IUnit = fd.get("IUnit") || "A";
@@ -78,8 +82,7 @@ export default class VoltageGradientPage extends React.Component {
           ) {
             this.setState({
               submitting: false,
-              error:
-                "Anode spacing s is required for the selected source type.",
+              error: "Anode spacing s is required for the selected source type.",
               activeTab: "results",
             });
             return;
@@ -123,9 +126,7 @@ export default class VoltageGradientPage extends React.Component {
               "voltage_gradient_calc",
               JSON.stringify({ inputs, results })
             );
-          } catch {
-            /* ignore */
-          }
+          } catch {}
 
           this.setState({
             submitting: false,
@@ -141,11 +142,10 @@ export default class VoltageGradientPage extends React.Component {
           });
         }
       });
-
       return;
     }
 
-    // Backward compatibility: old pattern received an inputs object
+    // Direct-call path (old pattern)
     const formInputs = arg || {};
     const {
       sourceType,
@@ -208,9 +208,7 @@ export default class VoltageGradientPage extends React.Component {
         "voltage_gradient_calc",
         JSON.stringify({ inputs: formInputs, results })
       );
-    } catch {
-      /* ignore */
-    }
+    } catch {}
 
     this.setState({
       results,
@@ -221,11 +219,7 @@ export default class VoltageGradientPage extends React.Component {
   };
 
   onResetAll = () => {
-    try {
-      window.localStorage.removeItem("voltage_gradient_calc");
-    } catch {
-      /* ignore */
-    }
+    try { window.localStorage.removeItem("voltage_gradient_calc"); } catch {}
     this.setState({
       results: null,
       error: null,
@@ -238,21 +232,18 @@ export default class VoltageGradientPage extends React.Component {
     const { results } = this.state || {};
     if (!results) return;
     const rows = [
-      ["metric","value","unit"],
-      ["Vm_max", Number(results.Vm_max || 0), "V/m"],
+      ["metric", "value", "unit"],
+      ["Vm_max",  Number(results.Vm_max  || 0), "V/m"],
       ["Vm_pipe", Number(results.Vm_pipe || 0), "V/m"],
-      ["V_pipe", Number(results.V_pipe || 0), "V"],
-      ["d_pipe", Number(results.d_pipe || 0), "m"],
+      ["V_pipe",  Number(results.V_pipe  || 0), "V"],
+      ["d_pipe",  Number(results.d_pipe  || 0), "m"],
     ];
-    const csv = rows.map(r => r.map(c => `"${String(c ?? "").replaceAll('"','""')}"`).join(',')).join('\n');
+    const csv  = rows.map(r => r.map(c => `"${String(c ?? "").replaceAll('"','""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
+    const url  = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "voltage-gradient-results.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = "voltage-gradient-results.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -287,8 +278,34 @@ export default class VoltageGradientPage extends React.Component {
   render() {
     const { submitting, results, error, activeTab, savedInputs } = this.state;
 
+    // ✅ Header Save Bar (under the banner). Captures the right pane so PDF shows charts (no raw series numbers).
+    const headerActions = (
+      <HeaderSaveBar
+        moduleKey="voltage_gradient_calc"
+        moduleLabel="Voltage Gradient"
+        inputs={savedInputs}
+        results={results}
+        captureRef={this.captureRef}
+        formulaName="Voltage Gradient"
+        modulePath="/pages/voltage-gradient"
+        buildName={({ inputs, project }) => {
+          const t   = inputs?.sourceType || "—";
+          const I   = inputs?.I != null ? `${inputs.I} ${inputs.IUnit || ""}`.trim() : "—";
+          const rho = inputs?.rho != null ? `${inputs.rho} ${inputs.rhoUnit || ""}`.trim() : "—";
+          const s   = inputs?.spacing != null ? `${inputs.spacing} ${inputs.spacingUnit || ""}`.trim() : "—";
+          return `${project?.name || "Default"} • ${t} • I=${I} • ρ=${rho} • s=${s}`;
+        }}
+      />
+    );
+
     return (
       <CalculatorPanel
+        header={
+          <div className="mb-6">
+
+          </div>
+        }
+        headerActions={headerActions}
         left={
           <div>
             {error ? (
@@ -296,8 +313,8 @@ export default class VoltageGradientPage extends React.Component {
                 {error}
               </div>
             ) : null}
-            {/* If your form already calls onSubmit(object), this still works.
-                If it's a <form> submit, we also support event-based submit. */}
+
+            {/* Works with both event-submit and direct object submit */}
             <VoltageGradientForm
               onSubmit={this.onSubmit}
               submitting={submitting}
@@ -307,7 +324,8 @@ export default class VoltageGradientPage extends React.Component {
           </div>
         }
         right={
-          <div className="space-y-4">
+          // 📸 Everything here is included in the exported PDF image (charts over raw series numbers)
+          <div className="space-y-4" ref={this.captureRef}>
             <this.InfoCard />
             <Tabs
               items={[

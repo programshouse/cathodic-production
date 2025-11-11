@@ -40,7 +40,6 @@ const PATH_TO_FORMULA = Object.fromEntries(MODULES.map(m => [m.path, m.name]));
 
 /* ---------------------------- Helpers ---------------------------- */
 const buildPayload = ({ folder_id, name, formula_name, title, inputs, results, status = "completed", meta }) => ({
-  // server expects these exact fields
   ...(folder_id != null ? { folder_id } : {}),
   ...(name ? { name } : {}),
   formula_name,
@@ -51,7 +50,6 @@ const buildPayload = ({ folder_id, name, formula_name, title, inputs, results, s
   ...(meta ? { meta } : {}),
 });
 
-// Turn "Surface Area Calculation" -> "submitSurfaceAreaCalculation"
 const toMethodName = (moduleName) => {
   const cleaned = moduleName
     .replace(/&/g, " ")
@@ -64,7 +62,6 @@ const toMethodName = (moduleName) => {
   return `submit${cleaned}`;
 };
 
-// Nicely extract API validation errors
 const extractApiError = (err) => {
   const resp = err?.response?.data;
   const msg = resp?.message || resp?.error || err?.message || "Request failed";
@@ -90,10 +87,7 @@ export const useCalculationStore = create((set, get) => {
     list: [],
     item: null,
 
-    /**
-     * Create/submit a calculation record
-     * Backend commonly requires: folder_id (server folder/project), name (record name)
-     */
+    /** Create/submit a calculation record */
     async submitCalculation({ folder_id, name, formula_name, title, inputs, results, status = "completed", meta }) {
       if (!formula_name) {
         const msg = "submitCalculation: 'formula_name' is required";
@@ -113,17 +107,14 @@ export const useCalculationStore = create((set, get) => {
         const created = data?.data ?? data?.result ?? data?.item ?? data;
         set({ lastSubmitted: created, loading: false });
 
-        // refresh list softly
         try { await get().fetchCalculations({ limit: 20 }); } catch {}
 
         return created;
       } catch (err) {
-        // Special handling for common validation error: folder_id missing/invalid
         const is422 = err?.response?.status === 422;
         const raw = err?.response?.data;
         let friendly = extractApiError(err);
 
-        // If server says folder id required/invalid, surface a clear hint
         const folderErrors = raw?.errors?.folder_id;
         if (is422 && folderErrors) {
           friendly =
@@ -137,10 +128,7 @@ export const useCalculationStore = create((set, get) => {
       }
     },
 
-    /**
-     * Submit by module route path
-     * (Maps path -> formula_name from MODULES above)
-     */
+    /** Submit by module route path */
     async submitForModulePath({ path, folder_id, name, title, inputs, results, status = "completed", meta }) {
       const formula_name = PATH_TO_FORMULA[path];
       if (!formula_name) {
@@ -151,7 +139,7 @@ export const useCalculationStore = create((set, get) => {
       return get().submitCalculation({ folder_id, name, formula_name, title, inputs, results, status, meta });
     },
 
-    /** List calculations (optional filters/paging via params) */
+    /** List calculations */
     async fetchCalculations(params = {}) {
       set({ loading: true, error: null });
       try {
@@ -209,14 +197,67 @@ export const useCalculationStore = create((set, get) => {
         throw new Error(msg);
       }
     },
+
+    /** Backend export: GET /calculations/:id/export -> Blob */
+    async exportPdf(id) {
+      if (!id) {
+        const msg = "exportPdf: missing id";
+        set({ error: msg });
+        throw new Error(msg);
+      }
+      set({ loading: true, error: null });
+
+      try {
+        const res = await api.get(`/${id}/export`, {
+          responseType: "blob",
+          headers: { ...authHeaders(), Accept: "application/pdf" },
+        });
+
+        set({ loading: false });
+
+        let filename = "calculation.pdf";
+        const cd = res.headers?.["content-disposition"] || res.headers?.get?.("content-disposition");
+        if (cd && /filename=\"?([^\";]+)\"?/i.test(cd)) {
+          filename = decodeURIComponent(RegExp.$1);
+        }
+
+        try { await get().fetchCalculations(); } catch {}
+
+        return { blob: res.data, filename };
+      } catch (err) {
+        const msg =
+          (err?.response?.data && typeof err.response.data === "string")
+            ? err.response.data
+            : (err?.message || "Failed to export PDF");
+        set({ error: msg, loading: false });
+        throw new Error(msg);
+      }
+    },
   };
 
   // Auto-generate one submitter per module: submitSurfaceAreaCalculation(), submitVoltageGradient(), ...
   const perModule = {};
   for (const m of MODULES) {
     const method = toMethodName(m.name);
-    perModule[method] = async ({ folder_id, name, title, inputs, results, status = "completed", meta } = {}) =>
-      core.submitCalculation({ folder_id, name, formula_name: m.name, title, inputs, results, status, meta });
+    perModule[method] = async ({
+      folder_id,
+      name,
+      title,
+      inputs,
+      results,
+      status = "completed",
+      meta,
+    } = {}) =>
+      core.submitCalculation({
+        folder_id,
+        name,
+        formula_name: m.name,
+        title,
+        inputs,
+        results,
+        status,
+        meta,
+      });
   }
 
   return { ...core, ...perModule, MODULES };

@@ -6,7 +6,7 @@ import { useFoldersStore } from "../../stores/useFoldersStore";
 export default function FolderPickerModal({
   open,
   onClose,
-  onPicked,          // (folderId, folderName) => void
+  onPicked,          
   defaultName = "New Project",
 }) {
   const {
@@ -48,7 +48,7 @@ export default function FolderPickerModal({
       } else {
         throw new Error("No ID returned.");
       }
-    } catch (e) {
+    } catch (err) {
       toast.update(t, { render: "Failed to create folder", type: "error", isLoading: false, autoClose: 2500 });
     }
   };

@@ -1,8 +1,10 @@
+// /src/pages/soil-resistivity/SoilResistivityPage.jsx
 import React from "react";
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import Tabs from "../../components/ui/Tabs";
 import ModuleCard from "../../components/ui/ModuleCard";
 import ResetPill from "../../components/ui/ResetPill";
+import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 import SoilResistivityForm from "./SoilResistivityForm";
 import SoilResistivityResults from "./SoilResistivityResults";
@@ -17,7 +19,13 @@ function InfoCard({ onReset, onCsv }) {
       subtitle="Apparent resistivity from field measurements (Wenner / Four-Point / Schlumberger)"
       actions={(
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onCsv} className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">CSV</button>
+          <button
+            type="button"
+            onClick={onCsv}
+            className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+          >
+            CSV
+          </button>
           <ResetPill onClick={onReset} />
         </div>
       )}
@@ -43,7 +51,7 @@ export default class SoilResistivityPage extends React.Component {
         const saved = window.localStorage.getItem("soil_resistivity_calc");
         parsed = saved ? JSON.parse(saved) : null;
       } catch {
-        // ignore malformed JSON / storage errors
+        /* ignore */
       }
     }
 
@@ -54,6 +62,9 @@ export default class SoilResistivityPage extends React.Component {
       activeTab: "results",
       savedInputs: parsed?.inputs || null,
     };
+
+    // right column ref for HeaderSaveBar screenshot/PDF capture
+    this.captureRef = React.createRef();
   }
 
   downloadResultsCsv = () => {
@@ -88,22 +99,15 @@ export default class SoilResistivityPage extends React.Component {
       return;
     }
     if ((method === "wenner" || method === "four_point") && !(Number(a) > 0)) {
-      this.setState({
-        error: "Electrode spacing a is required for Wenner/Four-Point.",
-        activeTab: "results",
-      });
+      this.setState({ error: "Electrode spacing a is required for Wenner/Four-Point.", activeTab: "results" });
       return;
     }
     if (method === "schlumberger" && !(Number(L) > 0 && Number(l) > 0)) {
-      this.setState({
-        error: "L and l are required for Schlumberger.",
-        activeTab: "results",
-      });
+      this.setState({ error: "L and l are required for Schlumberger.", activeTab: "results" });
       return;
     }
 
     this.setState({ submitting: true, error: null }, () => {
-      // Compute
       let results = null;
       try {
         results = computeSoilResistivity(inputs) || null;
@@ -112,21 +116,11 @@ export default class SoilResistivityPage extends React.Component {
         return;
       }
 
-      // Persist
       try {
         if (typeof window !== "undefined") {
-          window.localStorage.setItem(
-            "soil_resistivity_calc",
-            JSON.stringify({ inputs, results })
-          );
+          window.localStorage.setItem("soil_resistivity_calc", JSON.stringify({ inputs, results }));
         }
-      } catch (err) {
-        // ignore quota / storage errors
-        if (import.meta && import.meta.env && import.meta.env.DEV) {
-          // eslint-disable-next-line no-console
-          console.debug("localStorage save failed:", err);
-        }
-      }
+      } catch { /* ignore quota */ }
 
       this.setState({
         results,
@@ -143,20 +137,14 @@ export default class SoilResistivityPage extends React.Component {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("soil_resistivity_calc");
       }
-    } catch {
-      if (import.meta && import.meta.env && import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.debug("localStorage clear failed");
-      }
-    } finally {
-      this.setState({
-        results: null,
-        error: null,
-        activeTab: "results",
-        savedInputs: null,
-        submitting: false,
-      });
-    }
+    } catch { /* ignore */ }
+    this.setState({
+      results: null,
+      error: null,
+      activeTab: "results",
+      savedInputs: null,
+      submitting: false,
+    });
   };
 
   setTab = (key) => this.setState({ activeTab: key });
@@ -164,8 +152,32 @@ export default class SoilResistivityPage extends React.Component {
   render() {
     const { submitting, results, error, activeTab, savedInputs } = this.state;
 
+    // header save bar (under header)
+    const headerActions = (
+      <HeaderSaveBar
+        moduleKey="soil_resistivity_calc"
+        moduleLabel="Soil Resistivity"
+        inputs={savedInputs}
+        results={results}
+        captureRef={this.captureRef}
+        formulaName="Soil Resistivity"
+        modulePath="/pages/soil-resistivity"
+        buildName={({ inputs, project }) => {
+          const m = inputs?.method || "—";
+          const a = inputs?.a ? `${inputs.a} m` : (inputs?.L ? `L=${inputs.L}, l=${inputs.l}` : "—");
+          return `${project?.name || "Default"} • ${m} • ${a}`;
+        }}
+      />
+    );
+
     return (
       <CalculatorPanel
+        header={
+          <div className="mb-6">
+
+          </div>
+        }
+        headerActions={headerActions}
         left={
           <div>
             {error ? (
@@ -183,7 +195,8 @@ export default class SoilResistivityPage extends React.Component {
           </div>
         }
         right={
-          <div className="space-y-4">
+          // This pane (including charts) is what gets captured/exported by HeaderSaveBar
+          <div className="space-y-4" ref={this.captureRef}>
             <InfoCard onReset={this.onResetAll} onCsv={this.downloadResultsCsv} />
             <Tabs
               items={[

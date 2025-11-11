@@ -1,8 +1,10 @@
+// /src/pages/variable-resistor/VariableResistorPage.jsx
 import React from "react";
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import ModuleCard from "../../components/ui/ModuleCard";
 import Tabs from "../../components/ui/Tabs";
 import ResetPill from "../../components/ui/ResetPill";
+import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 import VariableResistorForm from "./VariableResistorForm";
 import VariableResistorResults from "./VariableResistorResults";
@@ -16,11 +18,21 @@ export default class VariableResistorPage extends React.Component {
       results: null,
       error: null,
       savedInputs: null,
+      activeTab: "results",
     };
+    // Right pane ref for HeaderSaveBar screenshot/PDF
+    this.captureRef = React.createRef();
   }
 
   componentDidMount() {
-    try { window.localStorage.removeItem('variable_resistor_calc'); } catch { /* ignore */ }
+    // Clear any legacy persisted state for this module
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem("variable_resistor_calc");
+      } catch (err) {
+        // ignore storage errors (private mode / quota / policy)
+      }
+    }
   }
 
   onSubmit = (raw) => {
@@ -33,12 +45,16 @@ export default class VariableResistorPage extends React.Component {
       supply_type,
     } = raw || {};
 
+    // Basic validation
     if (!(Number(I_req_value) > 0) || !(Number(R_circuit_ohm) >= 0) || !(Number(safety_factor) >= 1)) {
-      this.setState({ error: "Provide required current, circuit resistance, and safety factor (>=1).", activeTab: 'results' });
+      this.setState({
+        error: "Provide required current, circuit resistance, and safety factor (>=1).",
+        activeTab: "results",
+      });
       return;
     }
 
-    const I_req_A = toAmps(I_req_value, I_req_unit);
+    const I_req_A   = toAmps(I_req_value, I_req_unit);
     const V_drive_V = toVolts(V_drive_value, V_drive_unit);
     const V_anode_V = toVolts(V_anode_value, V_anode_unit);
 
@@ -59,35 +75,66 @@ export default class VariableResistorPage extends React.Component {
       safety_factor: Number(safety_factor || 1),
     });
 
-    this.setState({ results, savedInputs: inputs, error: null });
+    this.setState({ results, savedInputs: inputs, error: null, activeTab: "results" });
   };
 
   onResetAll = () => {
-    this.setState({ results: null, error: null, savedInputs: null });
+    this.setState({ results: null, error: null, savedInputs: null, activeTab: "results" });
   };
 
   downloadResultsCsv = () => {
     const { results } = this.state || {};
     if (!results) return;
     const rows = [
-      ['metric','value','unit'],
-      ['V_required', Number(results.V_required||0), 'V'],
-      ['P_required', Number(results.P_required||0), 'W'],
-      ['I_rectifier', Number(results.I_rectifier||0), 'A'],
-      ['V_rectifier', Number(results.V_rectifier||0), 'V'],
+      ["metric", "value", "unit"],
+      ["V_required",  Number(results.V_required || 0), "V"],
+      ["P_required",  Number(results.P_required || 0), "W"],
+      ["I_rectifier", Number(results.I_rectifier || 0), "A"],
+      ["V_rectifier", Number(results.V_rectifier || 0), "V"],
     ];
-    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replaceAll('"','""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'variable-resistor-results.csv';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    const csv  = rows
+      .map(r => r.map(c => `"${String(c ?? "").replaceAll('"','""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "variable-resistor-results.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
+  setTab = (key) => this.setState({ activeTab: key });
+
   render() {
-    const { submitting, results, error, savedInputs } = this.state;
+    const { submitting, results, error, savedInputs, activeTab } = this.state;
+
+    // ✅ Save/Export bar shown under header, consistent with other pages
+    const headerActions = (
+      <HeaderSaveBar
+        moduleKey="variable_resistor_calc"
+        moduleLabel="Variable Resistor Sizing"
+        inputs={savedInputs}
+        results={results}
+        captureRef={this.captureRef}
+        formulaName="Variable Resistor Sizing"
+        modulePath="/pages/variable-resistor"
+        buildName={({ inputs, project }) => {
+          const i = inputs?.I_req_value ? `${inputs.I_req_value} ${inputs.I_req_unit || ""}`.trim() : "—";
+          const r = inputs?.R_circuit_ohm ?? "—";
+          const sf = inputs?.safety_factor ?? "—";
+          return `${project?.name || "Default"} • I=${i} • R=${r}Ω • SF=${sf}`;
+        }}
+      />
+    );
 
     return (
       <CalculatorPanel
+        header={
+          <div className="mb-6">
+    
+          </div>
+        }
+        headerActions={headerActions}
         left={
           <div>
             {error ? (
@@ -95,17 +142,30 @@ export default class VariableResistorPage extends React.Component {
                 {error}
               </div>
             ) : null}
-            <VariableResistorForm onSubmit={this.onSubmit} submitting={submitting} onReset={this.onResetAll} initialValues={savedInputs || {}} />
+
+            <VariableResistorForm
+              onSubmit={this.onSubmit}
+              submitting={submitting}
+              onReset={this.onResetAll}
+              initialValues={savedInputs || {}}
+            />
           </div>
         }
         right={
-          <div className="space-y-4">
+          // 📸 This pane is captured in the PDF via HeaderSaveBar (no series numbers here)
+          <div className="space-y-4" ref={this.captureRef}>
             <ModuleCard
               title="Variable Resistor Equations"
               subtitle="Required voltage, ratings, and power"
               actions={
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={this.downloadResultsCsv} className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800">CSV</button>
+                  <button
+                    type="button"
+                    onClick={this.downloadResultsCsv}
+                    className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    CSV
+                  </button>
                   <ResetPill onClick={this.onResetAll} />
                 </div>
               }
@@ -114,11 +174,18 @@ export default class VariableResistorPage extends React.Component {
 Current rating:    I_rectifier = I_required × Safety Factor
 Voltage rating:    V_rectifier = V_required × Safety Factor
 Power:             P = V_required · I_required`}</pre>
-              
             </ModuleCard>
-            <div className="space-y-4">
-              <VariableResistorResults results={results} />
-            </div>
+
+            <Tabs
+              items={[{ key: "results", label: "Results" }]}
+              activeKey={activeTab}
+              onChange={this.setTab}
+            />
+            {activeTab === "results" && (
+              <div className="space-y-4">
+                <VariableResistorResults results={results} />
+              </div>
+            )}
           </div>
         }
       />

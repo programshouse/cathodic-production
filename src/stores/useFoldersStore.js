@@ -108,6 +108,75 @@ function drawLifeMiniChart(doc, data = [], yRef = null, x = 24, y = 0, w = 260, 
   return h + 10;
 }
 
+/** Draw a generic XY mini chart from an array of points */
+function drawSeriesMiniChart(
+  doc,
+  data = [],
+  { xKey = "x", yKey = "value", title = "Series Chart", xLabel = "", yLabel = "", refY = null },
+  x = 24, y = 0, w = 260, h = 120
+) {
+  if (!Array.isArray(data) || data.length === 0) return 0;
+
+  const xs = data.map(d => Number(d?.[xKey]) || 0);
+  const ys = data.map(d => Number(d?.[yKey]) || 0);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = 0;
+  const maxY = Math.max(...ys, Number(refY) || 0) * 1.1 || 10;
+
+  const toX = (vx) => x + ((vx - minX) / (maxX - minX || 1)) * w;
+  const toY = (vy) => y + h - ((vy - minY) / (maxY - minY || 1)) * h;
+
+  // Frame
+  doc.setDrawColor(220);
+  doc.rect(x, y, w, h);
+
+  // Optional reference horizontal line
+  if (Number.isFinite(refY) && refY > 0) {
+    doc.setDrawColor(37, 99, 235);
+    const yLine = toY(refY);
+    doc.setLineDash([3], 0);
+    doc.line(x + 2, yLine, x + w - 2, yLine);
+    doc.setLineDash([]);
+  }
+
+  // Series line
+  doc.setDrawColor(59, 130, 246);
+  doc.setLineWidth(1);
+  data.forEach((p, i) => {
+    const xx = toX(Number(p?.[xKey]) || 0);
+    const yy = toY(Number(p?.[yKey]) || 0);
+    if (i > 0) {
+      const prev = data[i - 1];
+      doc.line(toX(Number(prev?.[xKey]) || 0), toY(Number(prev?.[yKey]) || 0), xx, yy);
+    }
+  });
+
+  // Title
+  doc.setFontSize(9);
+  doc.setTextColor(17, 24, 39);
+  doc.text(title, x, y - 4);
+
+  // Axis labels (small, optional)
+  doc.setFontSize(8);
+  doc.setTextColor(100);
+  if (xLabel) doc.text(xLabel, x + w, y + h + 10, { align: "right" });
+  if (yLabel) doc.text(yLabel, x - 6, y + 8, { angle: 90 });
+
+  return h + 14;
+}
+
+/** Remove any array/series-like fields from results before printing JSON */
+function sanitizeResults(results) {
+  if (!results || typeof results !== "object") return {};
+  const clean = {};
+  for (const [k, v] of Object.entries(results)) {
+    if (Array.isArray(v)) continue; // strip arrays entirely
+    clean[k] = v;
+  }
+  return clean;
+}
+
 /* ------------------------------ store ------------------------------ */
 export const useFoldersStore = create((set, get) => ({
   folders: [],
@@ -198,7 +267,7 @@ export const useFoldersStore = create((set, get) => ({
     }
   },
 
-  // EXPORT AS PDF (Inputs + Results + optional lifeSeriesData chart)
+  // EXPORT AS PDF (Inputs + Results (no arrays) + charts for series)
   async exportAsPdf(folderId) {
     if (!folderId) {
       const msg = "exportAsPdf: 'folderId' is required";
@@ -209,26 +278,24 @@ export const useFoldersStore = create((set, get) => ({
     set({ loading: true, error: null });
 
     try {
-      // 1) Get folder name
+      // 1) Folder name
       const folderRes = await api.get(`folders/${folderId}`);
       const folder = normalizeItem(folderRes?.data) || { id: folderId, name: `Folder ${folderId}` };
 
-      // 2) Prefer calculations from folder; if empty, fallback to history endpoint
+      // 2) Prefer calculations in folder; fallback to history endpoint
       let calcs = Array.isArray(folder?.calculations) ? folder.calculations : [];
       if (!calcs.length) {
         try {
           const histRes = await api.get("calculation-history", { params: { folder_id: folderId, per_page: 1000 } });
           calcs = normalizeList(histRes?.data);
         } catch (e) {
-          // ignore; will export "no calculations"
           console.warn("history fallback failed:", e?.response?.data || e?.message);
         }
       }
 
-      // 3) Normalize each calculation’s inputs/results keys
       const items = (calcs || []).map(normCalc);
 
-      // 4) Build the PDF
+      // 3) PDF
       const doc = new jsPDF({ unit: "px", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
@@ -275,8 +342,17 @@ export const useFoldersStore = create((set, get) => ({
           const title = row?.title || row?.formula_name || `Calculation #${row?.id ?? idx + 1}`;
           const stamp = row?.created_at || row?.updated_at || row?.ts || "";
           const status = row?.status ? String(row.status) : "";
-          const life = Array.isArray(row?.results?.lifeSeriesData) ? row.results.lifeSeriesData : null;
-          const W_required = Number(row?.results?.W_required || 0);
+
+          // Extract series (to chart), sanitize results for JSON
+          const {
+            lifeSeriesData,
+            series,
+            spacingSeries,
+            distanceSeries,
+            nSeries,
+            ...restResults
+          } = row?.results || {};
+          const sanitizedResults = sanitizeResults(restResults);
 
           // Title
           ensureSpace(24);
@@ -295,17 +371,80 @@ export const useFoldersStore = create((set, get) => ({
             y += 12;
           }
 
-          // Optional mini chart
-          if (life && life.length) {
-            ensureSpace(140);
-            y += drawLifeMiniChart(doc, life, W_required, 24, y, pageW - 48, 120);
+          // Inputs
+          renderBlock("Inputs", row.inputs);
+
+          // Results (NO arrays)
+          renderBlock("Results", sanitizedResults);
+
+          // Charts (visuals only)
+          const charts = [];
+
+          if (Array.isArray(lifeSeriesData) && lifeSeriesData.length) {
+            charts.push({
+              kind: "life",
+              data: lifeSeriesData,
+              params: { refY: Number(row?.results?.W_required || 0) }
+            });
+          }
+          if (Array.isArray(series) && series.length) {
+            charts.push({
+              kind: "generic",
+              data: series,
+              options: { xKey: "n", yKey: "value", title: "Series", xLabel: "X", yLabel: "Value" }
+            });
+          }
+          if (Array.isArray(spacingSeries) && spacingSeries.length) {
+            charts.push({
+              kind: "generic",
+              data: spacingSeries,
+              options: { xKey: "a", yKey: "value", title: "Resistance vs Spacing", xLabel: "Spacing (m)", yLabel: "R" }
+            });
+          }
+          if (Array.isArray(distanceSeries) && distanceSeries.length) {
+            charts.push({
+              kind: "generic",
+              data: distanceSeries,
+              options: { xKey: "d", yKey: "value", title: "Profile vs Distance", xLabel: "Distance", yLabel: "Value" }
+            });
+          }
+          if (Array.isArray(nSeries) && nSeries.length) {
+            charts.push({
+              kind: "generic",
+              data: nSeries,
+              options: { xKey: "n", yKey: "value", title: "Series vs N", xLabel: "N", yLabel: "Value" }
+            });
           }
 
-          // Inputs / Results
-          renderBlock("Inputs", row.inputs);
-          // Exclude lifeSeriesData from printed JSON (chart already shows it)
-          const { lifeSeriesData, ...resultsNoLife } = row.results || {};
-          renderBlock("Results", resultsNoLife);
+          if (charts.length) {
+            ensureSpace(20);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(11);
+            doc.text("Charts", 24, y);
+            y += 8;
+
+            charts.forEach((c) => {
+              ensureSpace(140);
+              if (c.kind === "life") {
+                y += drawLifeMiniChart(doc, c.data, c.params?.refY, 24, y, pageW - 48, 120);
+              } else {
+                const opts = c.options || {};
+                y += drawSeriesMiniChart(
+                  doc,
+                  c.data,
+                  {
+                    xKey: opts.xKey || "x",
+                    yKey: opts.yKey || "value",
+                    title: opts.title || "Series Chart",
+                    xLabel: opts.xLabel || "",
+                    yLabel: opts.yLabel || "",
+                    refY: opts.refY
+                  },
+                  24, y, pageW - 48, 120
+                );
+              }
+            });
+          }
 
           // Divider
           if (idx !== items.length - 1) {

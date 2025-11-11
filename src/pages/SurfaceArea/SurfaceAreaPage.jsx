@@ -1,3 +1,4 @@
+// /src/pages/surface-area/SurfaceAreaPage.jsx
 import React from "react";
 import SurfaceAreaForm from "./SurfaceAreaForm";
 import SurfaceAreaResults from "./SurfaceAreaResults";
@@ -9,6 +10,8 @@ import {
   externalTankBottomAreaFlat,
 } from "./utils";
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
+import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
+
 export default class SurfaceAreaPage extends React.Component {
   constructor(props) {
     super(props);
@@ -23,6 +26,9 @@ export default class SurfaceAreaPage extends React.Component {
       error: null,
       errors: {},
     };
+
+    // right-column capture for PDF/Save
+    this.captureRef = React.createRef();
   }
 
   componentDidUpdate(_, prevState) {
@@ -39,7 +45,6 @@ export default class SurfaceAreaPage extends React.Component {
   }
 
   setError = (msg) => this.setState({ error: msg });
-
   clearError = () => this.setState({ error: null });
 
   onChangeType = (structureType) => {
@@ -250,24 +255,7 @@ export default class SurfaceAreaPage extends React.Component {
     });
   };
 
-  saveToHistory = () => {
-    const payload = {
-      structureType: this.state.structureType,
-      inputs: this.state.inputs,
-      units: this.state.units,
-      results: this.state.results,
-      ts: Date.now(),
-    };
-    try {
-      if (import.meta && import.meta.env && import.meta.env.DEV) {
-        console.warn('save-history', payload);
-      }
-      alert("Saved to history (placeholder). Wire this to your store/API when ready.");
-    } catch {
-      alert("Failed to save to history.");
-    }
-  };
-
+  /* --------- InfoCards & UI helpers --------- */
   InfoCard = () => {
     const { structureType } = this.state;
     const baseClass = "rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 backdrop-blur p-4 md:p-6 sticky top-4";
@@ -341,42 +329,59 @@ Atotal = Ashell + Abottom`}</pre>
   );
 
   render() {
-    const { structureType, inputs, units, submitting, results, errors } = this.state;
+    const { structureType, inputs, units, submitting, results, errors, error } = this.state;
 
+    /* ---------- HeaderSaveBar shown under page header ---------- */
     const headerActions = (
-      <>
-
-        {/* <button
-          type="button"
-          className="text-lg rounded-full border border-brand-200 dark:border-brand-800 mt-3 bg-brand-50  dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 px-3 py-1 hover:opacity-90"
-          onClick={this.saveToHistory}
-        >Save to History</button> */}
-      </>
+      <HeaderSaveBar
+        moduleKey="surface_area_calc"
+        moduleLabel="Surface Area Calculation"
+        inputs={results ? { structureType, ...inputs, units } : null}  // enable after a run
+        results={results}
+        captureRef={this.captureRef}
+        formulaName="Surface Area Calculation"
+        modulePath="/pages/surface-area"
+        buildName={({ inputs: i, project }) => {
+          const t = i?.structureType || structureType || "—";
+          const D = i?.diameter ?? inputs.diameter ?? "—";
+          const L = i?.length ?? inputs.length ?? "—";
+          const H = i?.height ?? inputs.height ?? "—";
+          return `${project?.name || "Default"} • ${t} • D=${D} • L=${L} • h=${H}`;
+        }}
+      />
     );
 
     return (
       <CalculatorPanel
         headerActions={headerActions}
         left={(
-          <SurfaceAreaForm
-            structureType={structureType}
-            onChangeType={(v) => this.setState({ structureType: v, results: null })}
-            inputs={inputs}
-            units={units}
-            onChangeInput={this.onChangeInput}
-            onChangeUnit={this.onChangeUnit}
-            onSubmit={this.onSubmit}
-            submitting={submitting}
-            errors={errors}
-            headerActions={headerActions}
-            onReset={this.resetAll}
-          />
+          <div>
+            {error ? <this.Alert>{error}</this.Alert> : null}
+            <SurfaceAreaForm
+              structureType={structureType}
+              onChangeType={(v) => this.setState({ structureType: v, results: null })}
+              inputs={inputs}
+              units={units}
+              onChangeInput={this.onChangeInput}
+              onChangeUnit={this.onChangeUnit}
+              onSubmit={this.onSubmit}
+              submitting={submitting}
+              errors={errors}
+              headerActions={headerActions}
+              onReset={this.resetAll}
+            />
+          </div>
         )}
         right={(
-          <>
+          <div ref={this.captureRef}>
             <this.InfoCard />
-            <SurfaceAreaResults structureType={structureType} results={results} includeBottom={Boolean(inputs.includeBottom)} onReset={this.resetAll} />
-          </>
+            <SurfaceAreaResults
+              structureType={structureType}
+              results={results}
+              includeBottom={Boolean(inputs.includeBottom)}
+              onReset={this.resetAll}
+            />
+          </div>
         )}
       />
     );

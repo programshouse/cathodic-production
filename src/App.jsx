@@ -14,6 +14,7 @@ import Card from "./components/ui/card.jsx";
 import AppLayout from "./layout/AppLayout";
 import Home from "./pages/Dashboard/Home";
 import HistoryPage from "./pages/History/HistoryPage";
+import LibPage from "./pages/Lib/libPage";
 import Form from "./pages/Form";
 import SurfaceAreaPage from "./pages/SurfaceArea/SurfaceAreaPage";
 import CurrentDensityPage from "./pages/CurrentDensity/CurrentDensityPage";
@@ -81,6 +82,7 @@ const router = createBrowserRouter([
           { path: "/resistor-sizing", element: <Navigate to="/pages/resistor-sizing" replace /> },
           { path: "/Variable-Resistor-Shunt", element: <Navigate to="/pages/Variable-Resistor-Shunt" replace /> },
           { path: "/history", element: <Navigate to="/pages/history" replace /> },
+          { path: "/pages/Lib", element: <Navigate to="/pages/lib" replace /> },
         ],
   },
   {

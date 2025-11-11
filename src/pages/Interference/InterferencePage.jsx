@@ -3,6 +3,7 @@ import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import Tabs from "../../components/ui/Tabs";
 import ModuleCard from "../../components/ui/ModuleCard";
 import ResetPill from "../../components/ui/ResetPill";
+import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 import InterferenceForm from "./InterferenceForm";
 import InterferenceResults from "./InterferenceResults";
@@ -16,7 +17,6 @@ import {
   seriesForDistance,
 } from "./utils";
 
-/** Small sticky info card like SurfaceAreaPage */
 function InfoCard({ onReset, onCsv }) {
   const baseClass =
     "rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 backdrop-blur p-4 md:p-6 sticky top-4";
@@ -53,7 +53,6 @@ V_new = V_pipe + V_shift`}</pre>
   );
 }
 
-/** Inline alert like SurfaceAreaPage */
 const Alert = ({ children }) => (
   <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-200 px-4 py-3 text-sm">
     {children}
@@ -67,9 +66,7 @@ export default class InterferencePage extends React.Component {
     if (typeof window !== "undefined") {
       try {
         parsed = JSON.parse(window.localStorage.getItem("interference_calc") || "null");
-      } catch {
-        /* ignore malformed JSON */
-      }
+      } catch { /* ignore */ }
     }
     this.state = {
       submitting: false,
@@ -78,21 +75,19 @@ export default class InterferencePage extends React.Component {
       savedInputs: parsed?.inputs || null,
       activeTab: "results",
     };
+    // Right panel ref for HeaderSaveBar screenshot
+    this.captureRef = React.createRef();
   }
 
   onSubmit = (raw) => {
     const { type, source, I, IUnit, rho, rhoUnit, d, dUnit, Vpipe, VpipeUnit } = raw || {};
 
-    // Basic validation
     if (
-      !type ||
-      !source ||
+      !type || !source ||
       !(Number(I) > 0) ||
       !(Number(rho) > 0) ||
       !(Number(d) > 0) ||
-      Vpipe === "" ||
-      Vpipe === null ||
-      Vpipe === undefined
+      Vpipe === "" || Vpipe === null || Vpipe === undefined
     ) {
       this.setState({ error: "Please fill all required fields with valid values." });
       return;
@@ -100,13 +95,11 @@ export default class InterferencePage extends React.Component {
 
     const inputs = { type, source, I, IUnit, rho, rhoUnit, d, dUnit, Vpipe, VpipeUnit };
 
-    // Convert to SI
     const I_A = currentToA(I, IUnit);
     const rho_ohm_m = resistivityToOhmM(rho, rhoUnit);
     const d_m = lengthToM(d, dUnit);
     const V_pipe_V = potentialToV(Vpipe, VpipeUnit);
 
-    // Compute core + series (profile vs distance)
     const core = computeInterference({ type, source, I_A, rho_ohm_m, d_m, V_pipe_V });
     const series = seriesForDistance({
       type,
@@ -120,33 +113,16 @@ export default class InterferencePage extends React.Component {
 
     const results = { ...core, series, inputs, d_m };
 
-    try {
-      window.localStorage.setItem("interference_calc", JSON.stringify({ inputs, results }));
-    } catch {
-      /* ignore storage errors */
-    }
-
-    this.setState({ results, savedInputs: inputs, error: null });
+    try { window.localStorage.setItem("interference_calc", JSON.stringify({ inputs, results })); } catch {}
+    this.setState({ results, savedInputs: inputs, error: null, activeTab: "results" });
   };
 
   onResetAll = () => {
-    try {
-      window.localStorage.removeItem("interference_calc");
-    } catch {
-      /* ignore */
-    }
-    this.setState({ results: null, error: null, savedInputs: null });
+    try { window.localStorage.removeItem("interference_calc"); } catch {}
+    this.setState({ results: null, error: null, savedInputs: null, activeTab: "results" });
   };
 
   setTab = (key) => this.setState({ activeTab: key });
-
-  componentWillUnmount() {
-    try {
-      window.localStorage.removeItem("interference_calc");
-    } catch {
-      /* ignore */
-    }
-  }
 
   downloadResultsCsv = () => {
     const { results } = this.state || {};
@@ -161,25 +137,35 @@ export default class InterferencePage extends React.Component {
       ["severity", String(results.severity || ""), ""],
       ["status", String(results.status || ""), ""],
     ];
-    const csv = rows
-      .map((r) => r.map((c) => `"${String(c ?? "").replaceAll('"', '""')}"`).join(","))
-      .join("\n");
+    const csv = rows.map(r => r.map(c => `"${String(c ?? "").replaceAll('"','""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "interference-results.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const a = document.createElement("a"); a.href = url; a.download = "interference-results.csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
   render() {
     const { submitting, results, error, savedInputs, activeTab } = this.state;
 
-    // Header actions area (kept empty for now to mirror SurfaceAreaPage pattern)
-    const headerActions = <></>;
+    // ✅ Save bar shown under the header (CalculatorPanel.headerActions)
+    const headerActions = (
+      <HeaderSaveBar
+        moduleKey="interference_calc"
+        moduleLabel="Interference Calculation"
+        inputs={savedInputs}
+        results={results}
+        captureRef={this.captureRef}
+        formulaName="Interference Calculation"
+        modulePath="/pages/interference"
+        buildName={({ inputs, project }) => {
+          const t = inputs?.type || "—";
+          const s = inputs?.source || "—";
+          const d = inputs?.d ? `${inputs.d} ${inputs.dUnit || ""}`.trim() : "—";
+          const rho = inputs?.rho ? `${inputs.rho} ${inputs.rhoUnit || ""}`.trim() : "—";
+          return `${project?.name || "Default"} • ${t}/${s} • d=${d} • ρ=${rho}`;
+        }}
+      />
+    );
 
     return (
       <CalculatorPanel
@@ -188,8 +174,12 @@ export default class InterferencePage extends React.Component {
             <div className="relative overflow-hidden rounded-2xl">
               <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-brand-400 opacity-90" />
               <div className="relative px-5 py-5 md:px-7 md:py-6">
-                <h2 className="text-white text-xl md:text-2xl font-semibold tracking-tight">Interference Calculator</h2>
-                <p className="text-brand-50/90 text-sm md:text-base mt-1">Select type/source and enter distance, current, soil resistivity, and pipe potential to compute interference voltage and potential shift.</p>
+                <h2 className="text-white text-xl md:text-2xl font-semibold tracking-tight">
+                  Interference Calculator
+                </h2>
+                <p className="text-brand-50/90 text-sm md:text-base mt-1">
+                  Select type/source and enter distance, current, soil resistivity, and pipe potential to compute interference voltage and potential shift.
+                </p>
               </div>
             </div>
           </div>
@@ -207,7 +197,8 @@ export default class InterferencePage extends React.Component {
           </div>
         }
         right={
-          <>
+          // This area is captured in the PDF as an image (chart included)
+          <div className="space-y-4" ref={this.captureRef}>
             <InfoCard onReset={this.onResetAll} onCsv={this.downloadResultsCsv} />
             <Tabs
               items={[{ key: "results", label: "Results" }, { key: "reference", label: "Reference" }]}
@@ -220,7 +211,7 @@ export default class InterferencePage extends React.Component {
                 <InterferenceReference />
               </ModuleCard>
             )}
-          </>
+          </div>
         }
       />
     );

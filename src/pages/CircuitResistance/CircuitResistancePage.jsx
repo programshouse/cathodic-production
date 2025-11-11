@@ -1,9 +1,11 @@
+// /src/pages/circuit-resistance/CircuitResistancePage.jsx
 import React from "react";
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import Tabs from "../../components/ui/Tabs";
 import CircuitResistanceForm from "./CircuitResistanceForm";
 import CircuitResistanceResults from "./CircuitResistanceResults";
 import { computeCircuit } from "./utils";
+import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 export default class CircuitResistancePage extends React.Component {
   constructor(props) {
@@ -13,9 +15,7 @@ export default class CircuitResistancePage extends React.Component {
       try {
         const saved = window.localStorage.getItem("circuit_resistance_calc");
         parsed = saved ? JSON.parse(saved) : null;
-      } catch (err) {
-        // ignore malformed JSON / storage errors
-      }
+      } catch { /* ignore */ }
     }
 
     this.state = {
@@ -25,6 +25,9 @@ export default class CircuitResistancePage extends React.Component {
       activeTab: "results",
       savedInputs: parsed?.inputs || null,
     };
+
+    // right column capture for PDF/screenshot in HeaderSaveBar
+    this.captureRef = React.createRef();
   }
 
   onSubmit = (e) => {
@@ -43,7 +46,7 @@ export default class CircuitResistancePage extends React.Component {
           pipeline_resistance_ohm: Number(fd.get("pipeline_resistance_ohm")),
         };
 
-        // Basic validation (aligned with other pages)
+        // Basic validation
         if (!(inputs.length_m > 0)) {
           this.setState({ submitting: false, error: "Cable length must be > 0.", activeTab: "results" });
           return;
@@ -75,9 +78,7 @@ export default class CircuitResistancePage extends React.Component {
               JSON.stringify({ inputs, results })
             );
           }
-        } catch (err) {
-          // ignore storage errors
-        }
+        } catch { /* ignore */ }
 
         this.setState({
           results,
@@ -95,21 +96,14 @@ export default class CircuitResistancePage extends React.Component {
   };
 
   onResetAll = () => {
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("circuit_resistance_calc");
-      }
-    } catch (err) {
-      // ignore
-    } finally {
-      this.setState({
-        results: null,
-        error: null,
-        activeTab: "results",
-        savedInputs: null,
-        submitting: false,
-      });
-    }
+    try { if (typeof window !== "undefined") window.localStorage.removeItem("circuit_resistance_calc"); } catch {}
+    this.setState({
+      results: null,
+      error: null,
+      activeTab: "results",
+      savedInputs: null,
+      submitting: false,
+    });
   };
 
   setTab = (key) => this.setState({ activeTab: key });
@@ -117,8 +111,29 @@ export default class CircuitResistancePage extends React.Component {
   render() {
     const { submitting, results, error, activeTab, savedInputs } = this.state;
 
+    const headerActions = (
+      <HeaderSaveBar
+        moduleKey="circuit_resistance_calc"
+        moduleLabel="Circuit Resistance"
+        inputs={savedInputs}
+        results={results}
+        captureRef={this.captureRef}
+        formulaName="Circuit Resistance Module"
+        modulePath="/pages/circuit-resistance"
+        buildName={({ inputs, project }) => {
+          const L = inputs?.length_m ? `${inputs.length_m} m` : "—";
+          const A = inputs?.cross_section_mm2 ? `${inputs.cross_section_mm2} mm²` : "—";
+          const mat = inputs?.material || "—";
+          const conn = inputs?.connection || "—";
+          const n = inputs?.number_of_anodes ?? "—";
+          return `${project?.name || "Default"} • L=${L} • A=${A} • ${mat} • ${conn} • n=${n}`;
+        }}
+      />
+    );
+
     return (
       <CalculatorPanel
+        headerActions={headerActions}
         left={
           <div>
             {error ? (
@@ -135,12 +150,11 @@ export default class CircuitResistancePage extends React.Component {
           </div>
         }
         right={
-          <div className="space-y-4">
+          <div className="space-y-4" ref={this.captureRef}>
             <Tabs
               items={[
                 { key: "results", label: "Results" },
-                // If you add a reference pane later, just append:
-                // { key: "reference", label: "Reference" }
+                // { key: "reference", label: "Reference" },
               ]}
               activeKey={activeTab}
               onChange={this.setTab}

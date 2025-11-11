@@ -14,7 +14,7 @@ import Card from "./components/ui/card.jsx";
 import AppLayout from "./layout/AppLayout";
 import Home from "./pages/Dashboard/Home";
 import HistoryPage from "./pages/History/HistoryPage";
-import LibPage from "./pages/Lib/libPage";
+import LibPage from "./pages/Lib/LibPage";
 import Form from "./pages/Form";
 import SurfaceAreaPage from "./pages/SurfaceArea/SurfaceAreaPage";
 import CurrentDensityPage from "./pages/CurrentDensity/CurrentDensityPage";
@@ -68,6 +68,7 @@ const router = createBrowserRouter([
           { path: "/pages/variable-resistor-shunt", element: <Navigate to="/pages/Variable-Resistor-Shunt" replace /> },
           { path: "/pages/barnes-layer", element: <BarnesLayerPage /> },
           { path: "/pages/history", element: <HistoryPage /> },
+          { path: "/pages/lib", element: <LibPage /> },
           // Legacy redirects
           { path: "/surface-area", element: <Navigate to="/pages/surface-area" replace /> },
           { path: "/current-density", element: <Navigate to="/pages/current-density" replace /> },
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
           { path: "/Variable-Resistor-Shunt", element: <Navigate to="/pages/Variable-Resistor-Shunt" replace /> },
           { path: "/history", element: <Navigate to="/pages/history" replace /> },
           { path: "/pages/Lib", element: <Navigate to="/pages/lib" replace /> },
+          { path: "/lib", element: <Navigate to="/pages/lib" replace /> },
         ],
   },
   {

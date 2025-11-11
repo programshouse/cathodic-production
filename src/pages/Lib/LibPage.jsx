@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import PageLayout from "../../components/ui/PageLayout";
 import PageHeader from "../../components/ui/PageHeader";
-import PageCard from "../../components/ui/PageCard";
+import CardBox from "../../components/ui/CardBox";
 import { useLibStore } from "../../stores/useLibStore";
 import { toast } from "react-toastify";
 
@@ -54,7 +54,7 @@ export default function LibPage() {
       />
 
       {/* Upload Card */}
-      <PageCard className="mb-6">
+      <CardBox className="mb-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -103,10 +103,10 @@ export default function LibPage() {
             </div>
           </div>
         </div>
-      </PageCard>
+      </CardBox>
 
       {/* Files List */}
-      <PageCard>
+      <CardBox>
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-semibold">Library Files</div>
           <button
@@ -192,7 +192,7 @@ export default function LibPage() {
             </tbody>
           </table>
         </div>
-      </PageCard>
+      </CardBox>
     </PageLayout>
   );
 }

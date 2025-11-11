@@ -3,7 +3,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import PageLayout from "../../components/ui/PageLayout";
 import PageHeader from "../../components/ui/PageHeader";
-import PageCard from "../../components/ui/PageCard";
 
 export default function Home() {
   return (

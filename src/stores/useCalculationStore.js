@@ -44,8 +44,11 @@ const buildPayload = ({ folder_id, name, formula_name, title, inputs, results, s
   ...(name ? { name } : {}),
   formula_name,
   title: title || formula_name,
+  // Send both legacy and current keys to maximize backend compatibility
   inputs: inputs ?? {},
+  input_values: inputs ?? {},
   results: results ?? {},
+  result: results ?? {},
   status,
   ...(meta ? { meta } : {}),
 });

@@ -10,6 +10,10 @@ import { exportHtmlToPdf } from "../../lib/exportPdf"; // ⬅️ adjust path if 
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -39,6 +43,25 @@ const KEY_TO_FORMULA = {
   resistor_sizing_calc: "Resistor Sizing",
 };
 
+// Preferred chart type per module
+const KEY_TO_CHART = {
+  voltage_gradient_calc: "line",
+  attenuation_calc: "line",
+  interference_calc: "line",
+  soil_resistivity_calc: "line",
+  barnes_layer_calc: "line",
+  coating_factors_calc: "bar",
+  groundbed_resistance_calc: "line",
+  galvanic_calc: "area",
+  impressed_current_calc: "area",
+  variable_resistor_calc: "line",
+  circuit_resistance_calc: "line",
+  surface_area_calc: "bar",
+  solar_sizing_calc: "area",
+  tank_mmo_calc: "area",
+  resistor_sizing_calc: "bar",
+};
+
 export default function HeaderSaveBar({
   moduleKey,
   moduleLabel,
@@ -52,7 +75,7 @@ export default function HeaderSaveBar({
 }) {
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [ setLastSaved] = useState(null); // store full saved object if needed later
+  const [lastSaved, setLastSaved] = useState(null); // store full saved object if needed later
   const canSave = !!inputs && !!results;
 
   const { submitCalculation } = useCalculationStore();
@@ -157,17 +180,24 @@ export default function HeaderSaveBar({
       // Render Recharts to PNG (off-screen)
       let chartDataUrl = "";
       if (shape.series.length) {
+        const chartType = KEY_TO_CHART[moduleKey] || "line";
         chartDataUrl = await renderRechartsToPng(shape, {
           width: 560,
           height: 240,
+          chartType,
         });
       }
 
       // Strip raw series arrays from Results for printing
       const resultsNoSeries = (() => {
         if (!results) return {};
-        const { ...rest } =
-          results;
+        const {
+          lifeSeriesData,
+          seriesData,
+          chartSeries,
+          series,
+          ...rest
+        } = results;
         return rest;
       })();
 
@@ -302,7 +332,7 @@ function toNum(v) {
   return Number.isFinite(n) ? n : null; // null => line gaps
 }
 
-async function renderRechartsToPng(shape, { width = 560, height = 240 } = {}) {
+async function renderRechartsToPng(shape, { width = 560, height = 240, chartType = "line" } = {}) {
   // Hidden fixed-size host
   const host = document.createElement("div");
   host.style.position = "fixed";
@@ -314,26 +344,71 @@ async function renderRechartsToPng(shape, { width = 560, height = 240 } = {}) {
   document.body.appendChild(host);
 
   const root = createRoot(host);
-  root.render(
-    <div style={{ width, height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={shapeToRows(shape)}>
+  const rows = shapeToRows(shape);
+  const ChartNode = () => {
+    if (chartType === "bar") {
+      return (
+        <BarChart data={rows}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="__x" />
           <YAxis />
           <Tooltip />
           <Legend />
           {shape.series.map((s, i) => (
-            <Line
-              key={s.name || `S${i + 1}`}
-              type="monotone"
-              dataKey={s.name || `S${i + 1}`}
-              dot={false}
-              strokeWidth={2}
-              isAnimationActive={false}
+            <Bar key={s.name || `S${i + 1}`}
+                 dataKey={s.name || `S${i + 1}`}
+                 isAnimationActive={false}
             />
           ))}
-        </LineChart>
+        </BarChart>
+      );
+    }
+    if (chartType === "area") {
+      return (
+        <AreaChart data={rows}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="__x" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          {shape.series.map((s, i) => (
+            <Area key={s.name || `S${i + 1}`}
+                  type="monotone"
+                  dataKey={s.name || `S${i + 1}`}
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                  isAnimationActive={false}
+            />
+          ))}
+        </AreaChart>
+      );
+    }
+    // default line
+    return (
+      <LineChart data={rows}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="__x" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        {shape.series.map((s, i) => (
+          <Line
+            key={s.name || `S${i + 1}`}
+            type="monotone"
+            dataKey={s.name || `S${i + 1}`}
+            dot={false}
+            strokeWidth={2}
+            isAnimationActive={false}
+          />
+        ))}
+      </LineChart>
+    );
+  };
+
+  root.render(
+    <div style={{ width, height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <ChartNode />
       </ResponsiveContainer>
     </div>
   );

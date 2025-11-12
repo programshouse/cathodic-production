@@ -13,6 +13,7 @@ import HistoryPage from "./pages/History/HistoryPage";
 // remove old LibPage import
 import LibraryBrowse from "./pages/Lib/LibraryBrowse";
 import LibraryManage from "./pages/Lib/LibraryManage";
+import LibraryCreate from "./pages/Lib/LibraryCreate";
 import FreeConsultation from "./pages/Booking/FreeConsultation.jsx";
 
 import Form from "./pages/Form";
@@ -107,6 +108,14 @@ const router = createBrowserRouter([
         element: (
           <RequireAdmin>
             <LibraryManage />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: "/admin/library/create",
+        element: (
+          <RequireAdmin>
+            <LibraryCreate />
           </RequireAdmin>
         ),
       },

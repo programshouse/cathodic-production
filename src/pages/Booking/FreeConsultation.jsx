@@ -1,6 +1,6 @@
 // /src/pages/booking/FreeConsultation.jsx
 import React from "react";
-import CPLogo from "../../../dist/images/logo/logoos.jpg"; // ✅ logo path
+import CPLogo from "../../../public/images/logo/logoos.jpg"; // ✅ logo path
 
 export default function FreeConsultation() {
   const CP_BLUE = "#122A56";

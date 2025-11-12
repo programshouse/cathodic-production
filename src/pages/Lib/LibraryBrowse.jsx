@@ -6,14 +6,15 @@ import PageHeader from "../../components/ui/PageHeader";
 import CardBox from "../../components/ui/CardBox";
 import { useLibStore } from "../../stores/useLibStore";
 import { useAuthStore } from "../../stores/useAuthStore";
-import CPLogo from "../../../dist/images/logo/logoos.jpg";
+import CPLogo from "../../../public/images/logo/logoos.jpg";
+import Btn from "../../components/ui/Btn";
 
 
 /* ===== Brand ===== */
 const CP_BLUE = "#122A56";
 
 export default function LibraryBrowse() {
-  const { library, loading, error, fetchlibrary, showlibrary } = useLibStore();
+  const { library, loading, error, fetchlibrary, showlibrary, deletelibrary } = useLibStore();
   const { admin, isInitialized } = useAuthStore();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -52,6 +53,8 @@ export default function LibraryBrowse() {
     );
   }, [library, query, typeFilter]);
 
+  const latest12 = useMemo(() => (filtered || []).slice(0, 12), [filtered]);
+
   const openDetails = async (id) => {
     try {
       const item = await showlibrary(id);
@@ -80,26 +83,8 @@ export default function LibraryBrowse() {
 
 {canManage && (
   <div className="flex items-center gap-2">
-    {/* Create -> manage upload section */}
-    <button
-      onClick={() => navigate("/admin/library#create")}
-      className="px-4 py-2 rounded-xl text-sm font-semibold border hover:opacity-90"
-      style={{ background: CP_BLUE, color: "white", borderColor: CP_BLUE }}
-      data-testid="lib-create-btn"
-      type="button"
-    >
-      + Create
-    </button>
-
-    {/* Manage (full page) */}
-    <button
-      onClick={() => navigate("/admin/library")}
-      className="px-4 py-2 rounded-xl text-sm font-semibold border hover:opacity-90"
-      style={{ borderColor: CP_BLUE, color: CP_BLUE }}
-      type="button"
-    >
-      Manage Library
-    </button>
+    <Btn variant="primary" size="sm" onClick={() => navigate("/admin/library/create")} data-testid="lib-create-btn">+ Create</Btn>
+    <Btn variant="outline" size="sm" onClick={() => navigate("/admin/library")}>Manage Library</Btn>
   </div>
 )}
 
@@ -137,12 +122,48 @@ export default function LibraryBrowse() {
             </select>
             <button
               onClick={() => fetchlibrary().catch(() => {})}
-              className="text-xs px-3 py-2 rounded-xl border bg-white hover:bg-gray-50"
+              className="text-xs px-3 py-2 rounded-none border bg-white hover:bg-gray-50"
               disabled={loading}
             >
               {loading ? "Refreshing…" : "Refresh"}
             </button>
           </div>
+        </div>
+      </CardBox>
+
+      {/* Featured */}
+      <CardBox className="mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-sm font-semibold">Latest files</div>
+          <div className="text-[12px] text-gray-500">Showing {latest12.length} of {filtered.length}</div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {latest12.map((f) => (
+            <div key={f.id} className="group rounded-2xl border bg-white border-gray-200 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900 line-clamp-2">{f.title || f.filename || "Untitled"}</div>
+                  <div className="text-[12px] text-gray-500 mt-0.5">{f.mime || f.mimetype || "-"}</div>
+                  {f.category && (
+                    <div className="text-[11px] text-gray-600 mt-0.5">Category: {String(f.category)}</div>
+                  )}
+                  {f.description && (
+                    <div className="text-[12px] text-gray-500 line-clamp-2 mt-0.5">{f.description}</div>
+                  )}
+                </div>
+                <div className="text-[11px] text-gray-500 whitespace-nowrap">{formatBytes(f.size)}</div>
+              </div>
+              <div className="text-[12px] text-gray-500 break-all line-clamp-2 min-h-[30px]">{f.url || f.path || f.file_path || ""}</div>
+              <div className="flex items-center gap-2 mt-auto">
+                {f.url && (<Btn href={f.url} target="_blank" rel="noreferrer" size="xs">Open</Btn>)}
+                <Btn onClick={() => openDetails(f.id)} size="xs">Details</Btn>
+                {canManage && (
+                  <Btn variant="danger" size="xs" onClick={() => { if (window.confirm("Delete this file?")) { deletelibrary(f.id).catch(() => {}); } }}>Delete</Btn>
+                )}
+              </div>
+            </div>
+          ))}
+          {latest12.length === 0 && (<div className="text-sm text-gray-500">No files yet.</div>)}
         </div>
       </CardBox>
 
@@ -153,8 +174,7 @@ export default function LibraryBrowse() {
             <thead style={{ background: CP_BLUE, color: "white" }}>
               <tr className="text-left">
                 <Th>Title</Th>
-                <Th className="hidden md:table-cell">Type</Th>
-                <Th className="hidden md:table-cell">Size</Th>
+                <Th className="hidden md:table-cell">Category</Th>
                 <Th className="hidden md:table-cell">Uploaded</Th>
                 <Th>Actions</Th>
               </tr>
@@ -178,32 +198,35 @@ export default function LibraryBrowse() {
                 <tr key={f.id} className={`border-b ${idx % 2 ? "bg-gray-50/60" : "bg-white"}`}>
                   <Td>
                     <div className="font-medium text-gray-900">{f.title || f.filename || "Untitled"}</div>
-                    <div className="text-[12px] text-gray-500 break-all">{f.url || f.path || ""}</div>
+                    {f.category && (
+                      <div className="text-[12px] text-gray-600">Category: {String(f.category)}</div>
+                    )}
+                    {f.description && (
+                      <div className="text-[12px] text-gray-500 line-clamp-2">{f.description}</div>
+                    )}
+                    <div className="text-[12px] text-gray-500 break-all">{f.url || f.path || f.file_path || ""}</div>
                   </Td>
-                  <Td className="hidden md:table-cell">{f.mime || f.mimetype || "-"}</Td>
-                  <Td className="hidden md:table-cell">{formatBytes(f.size)}</Td>
+                  <Td className="hidden md:table-cell">{f.category ? String(f.category) : "-"}</Td>
                   <Td className="hidden md:table-cell">{formatDateTime(f.created_at || f.uploaded_at)}</Td>
                   <Td>
                     <div className="flex items-center gap-2">
                       {f.url && (
-                        <a
-                          href={f.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs px-2 py-1 rounded-full border"
-                          style={{ borderColor: CP_BLUE, color: CP_BLUE }}
-                        >
-                          Open
-                        </a>
+                        <Btn href={f.url} target="_blank" rel="noreferrer" size="xs">Open</Btn>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => openDetails(f.id)}
-                        className="text-xs px-2 py-1 rounded-full border"
-                        style={{ borderColor: CP_BLUE, color: CP_BLUE }}
-                      >
-                        Details
-                      </button>
+                      <Btn onClick={() => openDetails(f.id)} size="xs">Details</Btn>
+                      {canManage && (
+                        <Btn
+                          variant="danger"
+                          size="xs"
+                          onClick={() => {
+                            if (window.confirm("Delete this file?")) {
+                              deletelibrary(f.id).catch(() => {});
+                            }
+                          }}
+                        >
+                          Delete
+                        </Btn>
+                      )}
                     </div>
                   </Td>
                 </tr>
@@ -249,7 +272,7 @@ function SimplePreview({ item, onClose, brand }) {
         <div className="m-0 md:m-4 rounded-t-2xl md:rounded-2xl overflow-hidden border bg-white shadow-xl">
           <div className="flex items-center justify-between px-4 py-3" style={{ background: brand, color: "white" }}>
             <div className="text-sm font-semibold">{item.title || item.filename || `File #${item.id}`}</div>
-            <button onClick={onClose} className="text-sm px-2 py-1 rounded-md bg-white text-gray-900">✕</button>
+            <button onClick={onClose} className="text-sm px-2 py-1 rounded-none bg-white text-gray-900">✕</button>
           </div>
           <div className="p-4">
             <div className="min-h-[240px] rounded-xl border bg-gray-50 flex items-center justify-center overflow-hidden">

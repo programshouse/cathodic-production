@@ -245,6 +245,7 @@ export default function HistoryPage() {
     create,
     delete: deleteFolder,
     exportAsPdf,
+    exportFolderPdf,
   } = useFoldersStore();
 
   const [openFolderId, setOpenFolderId] = React.useState(null);
@@ -311,7 +312,17 @@ export default function HistoryPage() {
   };
 
   const handleExportFolder = async (folderId) => {
-    await exportAsPdf(folderId);
+    try {
+      const { blob, filename } = await exportFolderPdf(folderId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || `folder-${folderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {}
   };
 
   const handleRefreshFolder = async (folderId) => {

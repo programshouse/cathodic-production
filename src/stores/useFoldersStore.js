@@ -371,9 +371,6 @@ export const useFoldersStore = create((set, get) => ({
             y += 12;
           }
 
-          // Inputs
-          renderBlock("Inputs", row.inputs);
-
           // Results (NO arrays)
           renderBlock("Results", sanitizedResults);
 
@@ -470,6 +467,38 @@ export const useFoldersStore = create((set, get) => ({
       set({ error: msg, loading: false });
       toast.error(msg);
       throw err;
+    }
+  },
+
+  /** Backend export: GET /folders/:id/export -> Blob (preferred if available) */
+  async exportFolderPdf(id) {
+    if (!id) {
+      const msg = "exportFolderPdf: 'id' is required";
+      set({ error: msg });
+      toast.error(msg);
+      throw new Error(msg);
+    }
+    set({ loading: true, error: null });
+    try {
+      const res = await api.get(`folders/${id}/export`, {
+        responseType: "blob",
+        headers: { ...authHeaders(), Accept: "application/pdf" },
+      });
+
+      set({ loading: false });
+
+      let filename = `folder-${id}.pdf`;
+      const cd = res.headers?.["content-disposition"] || res.headers?.get?.("content-disposition");
+      if (cd && /filename="?([^";]+)"?/i.test(cd)) {
+        filename = decodeURIComponent(RegExp.$1);
+      }
+
+      return { blob: res.data, filename };
+    } catch (err) {
+      const msg = errMsg(err, "Failed to export folder PDF");
+      set({ error: msg, loading: false });
+      toast.error(msg);
+      throw new Error(msg);
     }
   },
 }));

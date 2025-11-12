@@ -1,11 +1,13 @@
 // /src/pages/Lib/LibraryManage.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PageLayout from "../../components/ui/PageLayout";
 import PageHeader from "../../components/ui/PageHeader";
 import CardBox from "../../components/ui/CardBox";
 import { useLibStore } from "../../stores/useLibStore";
-import CPLogo from "../../../dist/images/logo/logoos.jpg";
+import CPLogo from "../../../public/images/logo/logoos.jpg";
 import { toast } from "react-toastify";
+import Btn from "../../components/ui/Btn";
+import { useNavigate } from "react-router-dom";
 
 /* ===== Brand ===== */
 const CP_BLUE = "#122A56";
@@ -17,18 +19,13 @@ export default function LibraryManage() {
     loading,
     error,
     fetchlibrary,
-    postlibrary,
     deletelibrary,
     showlibrary,
   } = useLibStore();
-
-  const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
-  const [dragOver, setDragOver] = useState(false);
+  const navigate = useNavigate();
   const [preview, setPreview] = useState(null);
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchlibrary().catch(() => {});
@@ -50,36 +47,7 @@ export default function LibraryManage() {
     );
   }, [library, typeFilter, query]);
 
-  const latest5 = useMemo(() => (filtered || []).slice(0, 5), [filtered]);
-
-  /* --------- upload handlers --------- */
-  const handleFileChange = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length) await doMultiUpload(files);
-    e.target.value = "";
-  };
-
-  const onDrop = async (e) => {
-    e.preventDefault();
-    setDragOver(false);
-    const files = Array.from(e.dataTransfer.files || []);
-    if (files.length) await doMultiUpload(files);
-  };
-
-  const doMultiUpload = async (files) => {
-    const t = toast.loading(`Uploading ${files.length} file${files.length > 1 ? "s" : ""}…`);
-    try {
-      for (const file of files) {
-        await postlibrary({ file, title, notes });
-      }
-      await fetchlibrary();
-      toast.update(t, { render: `Uploaded ${files.length} file${files.length > 1 ? "s" : ""}`, type: "success", isLoading: false, autoClose: 1400 });
-      setTitle("");
-      setNotes("");
-    } catch (err) {
-      toast.update(t, { render: err?.message || "Upload failed", type: "error", isLoading: false, autoClose: 2600 });
-    }
-  };
+  const latest12 = useMemo(() => (filtered || []).slice(0, 12), [filtered]);
 
   const handleDetails = async (id) => {
     const t = toast.loading("Loading details…");
@@ -102,93 +70,45 @@ export default function LibraryManage() {
         />
       </div>
 
-      {/* Upload + Search/Filters */}
+      {/* Filters */}
       <CardBox className="mb-6">
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-          {/* Left meta + search */}
-          <div className="xl:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <LabeledInput label="Title (optional)" value={title} onChange={setTitle} placeholder="e.g. CP Design Guide 2025.pdf" />
-              <LabeledInput label="Notes (optional)" value={notes} onChange={setNotes} placeholder="Short description or tags (e.g. #attenuation #design)" />
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-6 gap-3">
-              <div className="md:col-span-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e)=>setQuery(e.target.value)}
-                    placeholder="Search in title/type/notes/url…"
-                    className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm pl-9 focus:outline-none focus:ring-2"
-                    style={{ outlineColor: CP_BLUE }}
-                  />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</span>
-                </div>
-              </div>
-              <div className="md:col-span-2 flex gap-2">
-                <select
-                  value={typeFilter}
-                  onChange={(e)=>setTypeFilter(e.target.value)}
-                  className="w-full text-sm px-3 py-2 rounded-xl border bg-white dark:bg-gray-900"
-                >
-                  <option value="all">All types</option>
-                  <option value="image/">Images</option>
-                  <option value="pdf">PDF</option>
-                  <option value="word">Word</option>
-                  <option value="excel">Excel</option>
-                  <option value="text">Text</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={() => fetchlibrary().catch(()=>{})}
-                  className="text-xs px-3 py-2 rounded-xl border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
-                  disabled={loading}
-                >
-                  {loading ? "Refreshing…" : "Refresh"}
-                </button>
-              </div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex-1">
+            <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={(e)=>setQuery(e.target.value)}
+                placeholder="Search in title/type/notes/url…"
+                className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm pl-9"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔎</span>
             </div>
           </div>
-
-          {/* Right dropzone */}
-          <div
-            onDragOver={(e)=>{ e.preventDefault(); setDragOver(true); }}
-            onDragLeave={()=>setDragOver(false)}
-            onDrop={onDrop}
-            className={`rounded-2xl border-2 border-dashed p-4 text-center transition h-full flex flex-col items-center justify-center
-            ${dragOver ? "bg-blue-50/50 dark:bg-blue-950/30" : ""}`}
-            style={{ borderColor: dragOver ? CP_BLUE : "#cbd5e1" }}
-          >
-            <div className="text-sm" style={{ color: CP_BLUE }}>Drag & drop files here</div>
-            <div className="text-xs text-gray-500 mb-2">or</div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="text-xs px-3 py-1.5 rounded-full border hover:opacity-90"
-              style={{ borderColor: CP_BLUE, color: CP_BLUE }}
-              disabled={loading}
+          <div className="flex items-center gap-2">
+            <select
+              value={typeFilter}
+              onChange={(e)=>setTypeFilter(e.target.value)}
+              className="text-sm px-3 py-2 rounded-xl border bg-white dark:bg-gray-900"
             >
-              {loading ? "…" : "Choose files"}
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              multiple
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.svg,.txt"
-              onChange={handleFileChange}
-            />
-            <div className="mt-2 text-[11px] text-gray-500">PDF, images, docs… (multi-select supported)</div>
+              <option value="all">All types</option>
+              <option value="image/">Images</option>
+              <option value="pdf">PDF</option>
+              <option value="word">Word</option>
+              <option value="excel">Excel</option>
+              <option value="text">Text</option>
+            </select>
+            <Btn size="sm" onClick={() => fetchlibrary().catch(()=>{})} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</Btn>
+            <Btn variant="primary" size="sm" onClick={() => navigate("/admin/library/create")}>+ Create</Btn>
           </div>
         </div>
       </CardBox>
 
       {/* Featured */}
       <CardBox className="mb-6">
-        <SectionHead count={latest5.length} total={filtered.length} title="Latest files" />
+        <SectionHead count={latest12.length} total={filtered.length} title="Latest files" />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {latest5.map((f) => (
+          {latest12.map((f) => (
             <FileCard
               key={f.id}
               f={f}
@@ -198,7 +118,7 @@ export default function LibraryManage() {
               onDelete={() => confirmDelete(() => deletelibrary(f.id))}
             />
           ))}
-          {latest5.length === 0 && <div className="text-sm text-gray-500">No files yet.</div>}
+          {latest12.length === 0 && <div className="text-sm text-gray-500">No files yet.</div>}
         </div>
       </CardBox>
 
@@ -220,8 +140,7 @@ export default function LibraryManage() {
             <thead style={{ background: CP_BLUE, color: "white" }}>
               <tr className="text-left">
                 <Th>Title</Th>
-                <Th className="hidden md:table-cell">Type</Th>
-                <Th className="hidden md:table-cell">Size</Th>
+                <Th className="hidden md:table-cell">Category</Th>
                 <Th className="hidden md:table-cell">Uploaded</Th>
                 <Th>Actions</Th>
               </tr>
@@ -233,32 +152,32 @@ export default function LibraryManage() {
                 </tr>
               )}
               {filtered.map((f, idx) => (
-                <tr key={f.id} className={`border-b ${idx % 2 ? "bg-gray-50/60" : "bg-white"}`}>
-                  <Td>
-                    <div className="font-medium text-gray-900">{f.title || f.filename || "Untitled"}</div>
-                    <div className="text-[12px] text-gray-500 break-all">{f.url || f.path || ""}</div>
-                  </Td>
-                  <Td className="hidden md:table-cell">{f.mime || f.mimetype || "-"}</Td>
-                  <Td className="hidden md:table-cell">{formatBytes(f.size)}</Td>
-                  <Td className="hidden md:table-cell">{formatDateTime(f.created_at || f.uploaded_at)}</Td>
-                  <Td>
+                <tr key={f.id} className="border-b border-gray-100 dark:border-gray-800">
+                  <td className="py-2 pr-4">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{f.title || f.filename || "Untitled"}</div>
+                    {f.category && (
+                      <div className="text-[12px] text-gray-600 dark:text-gray-400">Category: {String(f.category)}</div>
+                    )}
+                    {f.description && (
+                      <div className="text-[12px] text-gray-500 dark:text-gray-400 line-clamp-2">{f.description}</div>
+                    )}
+                    <div className="text-[12px] text-gray-500 dark:text-gray-400 break-all">{f.url || f.path || f.file_path || ""}</div>
+                  </td>
+                  <td className="py-2 pr-4 hidden md:table-cell">{f.category ? String(f.category) : "-"}</td>
+                  <td className="py-2 pr-4 hidden md:table-cell">{formatDateTime(f.created_at || f.uploaded_at)}</td>
+                  <Td className="py-2 pr-4">
                     <div className="flex items-center gap-2">
                       {f.url && (
-                        <a href={f.url} target="_blank" rel="noreferrer"
-                           className="text-xs px-2 py-1 rounded-full border" style={{ borderColor: CP_BLUE, color: CP_BLUE }}>
-                          Open
-                        </a>
+                        <Btn href={f.url} target="_blank" rel="noreferrer" size="xs">Open</Btn>
                       )}
-                      <button type="button" onClick={() => handleDetails(f.id)}
-                              className="text-xs px-2 py-1 rounded-full border"
-                              style={{ borderColor: CP_BLUE, color: CP_BLUE }}>
-                        Show
-                      </button>
-                      <button onClick={() => confirmDelete(() => deletelibrary(f.id))}
-                              className="text-xs px-2 py-1 rounded-full border"
-                              style={{ borderColor: "#fca5a5", color: "#b91c1c" }}>
+                      <Btn onClick={() => handleDetails(f.id)} size="xs">Show</Btn>
+                      <Btn
+                        variant="danger"
+                        size="xs"
+                        onClick={() => confirmDelete(() => deletelibrary(f.id))}
+                      >
                         Delete
-                      </button>
+                      </Btn>
                     </div>
                   </Td>
                 </tr>
@@ -310,11 +229,17 @@ function FileCard({ f, brand, onOpen, onDetails, onDelete }) {
           <div className="text-[12px] text-gray-500 mt-0.5">
             {f.mime || f.mimetype || "-"}
           </div>
+          {f.category && (
+            <div className="text-[11px] text-gray-600 mt-0.5">Category: {String(f.category)}</div>
+          )}
+          {f.description && (
+            <div className="text-[12px] text-gray-500 line-clamp-2 mt-0.5">{f.description}</div>
+          )}
         </div>
         <div className="text-[11px] text-gray-500 whitespace-nowrap">{formatBytes(f.size)}</div>
       </div>
       <div className="text-[12px] text-gray-500 break-all line-clamp-2 min-h-[30px]">
-        {f.url || f.path || ""}
+        {f.url || f.path || f.file_path || ""}
       </div>
       <div className="flex items-center gap-2 mt-auto">
         {f.url && (
@@ -347,7 +272,7 @@ function DetailsModal({ item, onClose, brand, accent }) {
         <div className="m-0 md:m-4 rounded-t-2xl md:rounded-2xl overflow-hidden border bg-white shadow-xl">
           <div className="flex items-center justify-between px-4 py-3" style={{ background: brand, color: "white" }}>
             <div className="text-sm font-semibold">{item.title || item.filename || `File #${item.id}`}</div>
-            <button onClick={onClose} className="text-sm px-2 py-1 rounded-md" style={{ background: accent, color: brand }}>✕</button>
+            <button onClick={onClose} className="text-sm px-2 py-1 rounded-full" style={{ background: accent, color: brand }}>✕</button>
           </div>
           <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2 min-h-[240px] rounded-xl border bg-gray-50 flex items-center justify-center overflow-hidden">
@@ -356,16 +281,27 @@ function DetailsModal({ item, onClose, brand, accent }) {
               {!item.url && <div className="text-xs text-gray-500">No preview available</div>}
             </div>
             <div className="space-y-2 text-sm">
+              <MetaRow label="Title" value={item.title || item.filename || `File #${item.id}`} />
               <MetaRow label="Type" value={item.mime || item.mimetype || "-"} />
               <MetaRow label="Size" value={formatBytes(item.size)} />
               <MetaRow label="Uploaded" value={formatDateTime(item.created_at || item.uploaded_at)} />
               <MetaRow label="URL" value={<a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all">{item.url || "-"}</a>} />
+              <MetaRow label="File Path" value={<span className="break-all">{item.file_path || item.path || "-"}</span>} />
+              <MetaRow label="Category" value={item.category ? String(item.category) : "-"} />
               <div className="pt-2">
                 <div className="text-[12px] text-gray-500 mb-1">Notes</div>
                 <div className="text-[13px] text-gray-800 whitespace-pre-wrap min-h-[40px]">
                   {item.notes || "-"}
                 </div>
               </div>
+              {item.description && (
+                <div className="pt-2">
+                  <div className="text-[12px] text-gray-500 mb-1">Description</div>
+                  <div className="text-[13px] text-gray-800 whitespace-pre-wrap min-h-[40px]">
+                    {item.description}
+                  </div>
+                </div>
+              )}
               <div className="pt-3 flex items-center gap-2">
                 {item.url && (
                   <a href={item.url} target="_blank" rel="noreferrer"

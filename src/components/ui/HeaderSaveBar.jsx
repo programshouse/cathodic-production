@@ -78,7 +78,7 @@ export default function HeaderSaveBar({
   const [lastSaved, setLastSaved] = useState(null); // store full saved object if needed later
   const canSave = !!inputs && !!results;
 
-  const { submitCalculation } = useCalculationStore();
+  const { submitCalculation, exportPdf } = useCalculationStore();
 
   const resolvedFormulaName =
     formulaName || KEY_TO_FORMULA[moduleKey] || moduleLabel || "Calculation";
@@ -163,6 +163,22 @@ export default function HeaderSaveBar({
     const t = toast.loading("Preparing PDF…");
 
     try {
+      // Prefer server-side export if we have a saved calculation id
+      if (lastSaved?.id) {
+        const { blob, filename } = await exportPdf(lastSaved.id);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename || "calculation.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        toast.update(t, { render: "PDF exported", type: "success", isLoading: false, autoClose: 1500 });
+        return;
+      }
+
       const projectName =
         getProject(getActiveProjectId())?.name || "Default Project";
       const titleText = moduleLabel || resolvedFormulaName || "Calculation";
@@ -215,11 +231,6 @@ export default function HeaderSaveBar({
           </p>
         </section>
 
-        <section>
-          <h1>Inputs</h1>
-          <pre>${escapeHtml(JSON.stringify(inputs ?? {}, null, 2))}</pre>
-        </section>
-
         ${
           chartDataUrl
             ? `
@@ -231,7 +242,7 @@ export default function HeaderSaveBar({
         }
 
         <section>
-          <h1>Results (details)</h1>
+          <h1>Results</h1>
           <pre>${escapeHtml(JSON.stringify(resultsNoSeries ?? {}, null, 2))}</pre>
         </section>
       `;
@@ -264,7 +275,7 @@ export default function HeaderSaveBar({
           type="button"
           onClick={onClickSave}
           disabled={!canSave || busy}
-          className={`text-xs px-3 py-1.5 rounded-full border ${
+          className={`text-sm px-3 py-1.5 rounded-none border ${
             canSave
               ? "bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
               : "opacity-60 cursor-not-allowed"
@@ -278,12 +289,12 @@ export default function HeaderSaveBar({
           {busy ? "…" : "Save"}
         </button>
 
-        {/* Client-side export using SAME results; chart via Recharts; no raw series printed */}
+        {/* Export PDF: server if saved, otherwise client with Recharts */}
         <button
           type="button"
           onClick={handleExportPdf}
           disabled={busy}
-          className="text-xs px-3 py-1.5 rounded-full border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
+          className="text-sm px-3 py-1.5 rounded-none border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
           title="Export PDF (inputs + results + Recharts chart)"
         >
           {busy ? "…" : "Export PDF"}

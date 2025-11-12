@@ -15,6 +15,8 @@ import AppLayout from "./layout/AppLayout";
 import Home from "./pages/Dashboard/Home";
 import HistoryPage from "./pages/History/HistoryPage";
 import LibPage from "./pages/Lib/LibPage";
+import FreeConsultation from "./pages/Booking/FreeConsultation.jsx";
+
 import Form from "./pages/Form";
 import SurfaceAreaPage from "./pages/SurfaceArea/SurfaceAreaPage";
 import CurrentDensityPage from "./pages/CurrentDensity/CurrentDensityPage";
@@ -85,6 +87,18 @@ const router = createBrowserRouter([
           { path: "/history", element: <Navigate to="/pages/history" replace /> },
           { path: "/pages/Lib", element: <Navigate to="/pages/lib" replace /> },
           { path: "/lib", element: <Navigate to="/pages/lib" replace /> },
+// real route
+{ path: "/pages/booking", element: <FreeConsultation /> },
+
+// helpful aliases
+{ path: "/booking", element: <Navigate to="/pages/booking" replace /> },
+{ path: "/pages/Booking", element: <Navigate to="/pages/booking" replace /> },
+{ path: "/free-consultation", element: <Navigate to="/pages/booking" replace /> },
+{ path: "/pages/free-consultation", element: <Navigate to="/pages/booking" replace /> },
+
+// remove/replace this old line (it pointed to a non-existent route):
+// { path: "/FreeConsultation", element: <Navigate to="/pages/FreeConsultation" replace /> },
+
         ],
   },
   {

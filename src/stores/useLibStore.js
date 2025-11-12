@@ -4,7 +4,7 @@ import axios from "axios";
 
 /* --------------------------- API setup --------------------------- */
 const API_ROOT = "https://www.programshouse.com/cp/api"; // same root
-const RESOURCE = "lib"; // <-- API PATH base (adjust if needed)
+const RESOURCE = "library"; // <-- API PATH base (adjust if needed)
 
 const api = axios.create({
   baseURL: `${API_ROOT}/${RESOURCE}`,
@@ -43,7 +43,7 @@ export const useLibStore = create((set, get) => ({
 fetchlibrary: async (params = {}) => {
   set({ loading: true, error: null });
   try {
-    const res = await api.get("/library", { headers: authHeaders(), params });
+    const res = await api.get("", { headers: authHeaders(), params });
     const payload = res?.data ?? {};
     const list =
       Array.isArray(payload.data) ? payload.data :
@@ -69,7 +69,7 @@ postlibrary: async ({ file, title = "", notes = "" }) => {
     if (title) form.append("title", title);
     if (notes) form.append("notes", notes);
 
-    const res = await api.post("/library", form, {
+    const res = await api.post("", form, {
       headers: { ...authHeaders(), "Content-Type": "multipart/form-data" },
     });
 
@@ -83,11 +83,44 @@ postlibrary: async ({ file, title = "", notes = "" }) => {
   }
 },
 
-deleteFile: async (id) => {
-  if (!id) { const msg = "deleteFile: missing id"; set({ error: msg }); throw new Error(msg); }
+
+showlibrary: async (id) => {
+  if (!id) throw new Error("showlibrary: 'id' is required");
   set({ loading: true, error: null });
   try {
-    await api.delete(`/library/${id}`, { headers: authHeaders() });
+    const res = await api.get(`${id}`, { headers: authHeaders() });
+    const item =
+      res?.data?.data ?? res?.data?.item ?? res?.data ?? null;
+
+    if (!item || typeof item !== "object") {
+      throw new Error("Invalid response while fetching library item");
+    }
+
+    // Upsert into current list
+    const { library } = get();
+    const idx = Array.isArray(library)
+      ? library.findIndex((x) => String(x.id) === String(item.id))
+      : -1;
+
+    let next = Array.isArray(library) ? [...library] : [];
+    if (idx >= 0) next[idx] = { ...next[idx], ...item };
+    else next.unshift(item);
+
+    set({ library: next, loading: false });
+    return item;
+  } catch (err) {
+    const msg = extractApiError(err) || "Failed to fetch library item";
+    set({ error: msg, loading: false });
+    throw new Error(msg);
+  }
+},
+
+
+deletelibrary: async (id) => {
+  if (!id) { const msg = "deleteLibrary: missing id"; set({ error: msg }); throw new Error(msg); }
+  set({ loading: true, error: null });
+  try {
+    await api.delete(`${id}`, { headers: authHeaders() });
     try { await get().fetchlibrary(); } catch (err) {
       throw new Error(`File deleted but failed to refresh library: ${err?.message || err}`);
     }

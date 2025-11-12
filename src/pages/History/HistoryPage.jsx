@@ -15,6 +15,7 @@ import {
   Tooltip,
   CartesianGrid,
   ReferenceLine,
+  Legend,
 } from "recharts";
 
 function tsFmt(v) {
@@ -43,6 +44,196 @@ const fmt = (n, digits = 3) => {
   const intFmt = i.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return d ? `${intFmt}.${d}` : intFmt;
 };
+
+function normalizeSeries(raw) {
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const labels = Array.isArray(raw.labels) ? raw.labels : [];
+    const series = Array.isArray(raw.series) ? raw.series : [];
+    return {
+      labels,
+      series: series
+        .filter((s) => s && Array.isArray(s.data))
+        .map((s, i) => ({
+          name: s.name || `Series ${i + 1}`,
+          data: s.data.map((v) => {
+            const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
+            return Number.isFinite(n) ? n : null;
+          }),
+        })),
+    };
+  }
+  if (Array.isArray(raw)) {
+    // If it's an array of numbers
+    if (raw.every((v) => typeof v === "number" || v == null)) {
+      return {
+        labels: Array.from({ length: raw.length }, (_, i) => i + 1),
+        series: [{ name: "Series 1", data: raw.map((v) => {
+          const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
+          return Number.isFinite(n) ? n : null;
+        }) }],
+      };
+    }
+    // If it's an array of objects, attempt to detect x/y keys
+    if (raw.length && typeof raw[0] === "object" && raw[0] !== null) {
+      const xKey =
+        ("year" in raw[0] && "year") ||
+        ("x" in raw[0] && "x") ||
+        ("t" in raw[0] && "t") ||
+        null;
+      const yKey =
+        ("weight_kg" in raw[0] && "weight_kg") ||
+        ("weight" in raw[0] && "weight") ||
+        ("V_int" in raw[0] && "V_int") ||
+        ("value" in raw[0] && "value") ||
+        ("y" in raw[0] && "y") ||
+        null;
+      if (xKey && yKey) {
+        const labels = raw.map((d) => String(d?.[xKey]))
+          .map((s, i) => (s == null || s === "undefined" ? String(i + 1) : s));
+        const data = raw.map((d) => {
+          const n = Number(d?.[yKey]);
+          return Number.isFinite(n) ? n : null;
+        });
+        const name =
+          yKey === "weight_kg" || yKey === "weight" ? "Required Weight (kg)" :
+          yKey === "V_int" ? "Interference Voltage (V)" :
+          "Series 1";
+        return { labels, series: [{ name, data }] };
+      }
+    }
+    // Fallback: indexes
+    return {
+      labels: Array.from({ length: raw.length }, (_, i) => i + 1),
+      series: [{ name: "Series 1", data: raw.map((v) => {
+        const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
+        return Number.isFinite(n) ? n : null;
+      }) }],
+    };
+  }
+  return { labels: [], series: [] };
+}
+
+function shapeToRows(shape) {
+  const maxLen = Math.max(0, ...shape.series.map((s) => s.data.length));
+  const labels = shape.labels?.length ? shape.labels : Array.from({ length: maxLen }, (_, i) => i + 1);
+  const rows = [];
+  for (let i = 0; i < maxLen; i++) {
+    const row = { __x: String(labels[i] ?? i + 1) };
+    for (const s of shape.series) {
+      const key = s.name || "Series";
+      row[key] = s.data[i];
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+// Remove any array/series-like fields from results before printing JSON in History
+function stripSeriesFields(results) {
+  if (!results || typeof results !== "object") return {};
+  const {
+    lifeSeriesData,
+    series,
+    seriesData,
+    chartSeries,
+    spacingSeries,
+    distanceSeries,
+    nSeries,
+    ...rest
+  } = results || {};
+  const clean = {};
+  for (const [k, v] of Object.entries(rest)) {
+    if (Array.isArray(v)) continue; // drop any arrays
+    clean[k] = v;
+  }
+  return clean;
+}
+
+// Build a single primary chart configuration per results, preferring module-style series.
+function buildPrimaryChart(results = {}) {
+  // 1) Impressed/Galvanic style: [{year, weight or weight_kg}] with optional inputs.design_life_years
+  const lifeRaw = Array.isArray(results?.lifeSeriesData) ? results.lifeSeriesData : null;
+  const icRaw = Array.isArray(results?.series) ? results.series : lifeRaw;
+  if (Array.isArray(icRaw) && icRaw.length && ("year" in (icRaw[0]||{}) || "x" in (icRaw[0]||{})) && ("weight" in (icRaw[0]||{}) || "weight_kg" in (icRaw[0]||{}))) {
+    const data = icRaw.map(d => ({ year: Number(d?.year ?? d?.x ?? NaN), weight_kg: Number(d?.weight_kg ?? d?.weight ?? NaN) }))
+      .filter(d => Number.isFinite(d.year) && Number.isFinite(d.weight_kg));
+    if (data.length) {
+      const yMax = Math.max(1, Math.max(...data.map(d => d.weight_kg))) * 1.25;
+      const refX = Number(results?.inputs?.design_life_years);
+      return {
+        kind: "impressed",
+        data,
+        xKey: "year",
+        yKey: "weight_kg",
+        xLabel: "Year",
+        yLabel: "Required Weight (kg)",
+        yMax,
+        refX: Number.isFinite(refX) && refX > 0 ? refX : null,
+      };
+    }
+  }
+
+  // 2) Interference style: [{ d_m, V_int }]
+  const intRaw = Array.isArray(results?.series) ? results.series : null;
+  if (Array.isArray(intRaw) && intRaw.length && ("d_m" in (intRaw[0]||{})) && ("V_int" in (intRaw[0]||{}))) {
+    const data = intRaw.map(d => ({ d_m: Number(d?.d_m ?? NaN), V_int: Number(d?.V_int ?? NaN) }))
+      .filter(d => Number.isFinite(d.d_m) && Number.isFinite(d.V_int));
+    if (data.length) {
+      return {
+        kind: "interference",
+        data,
+        xKey: "d_m",
+        yKey: "V_int",
+        xLabel: "Distance d (m)",
+        yLabel: "Vint (V)",
+      };
+    }
+  }
+
+  // 3) Soil resistivity-like: spacingSeries [{ a, value }]
+  const sp = Array.isArray(results?.spacingSeries) ? results.spacingSeries : null;
+  if (Array.isArray(sp) && sp.length && ("a" in (sp[0]||{})) && ("value" in (sp[0]||{}))) {
+    const data = sp.map(d => ({ a: Number(d?.a ?? NaN), value: Number(d?.value ?? NaN) }))
+      .filter(d => Number.isFinite(d.a) && Number.isFinite(d.value));
+    if (data.length) {
+      return { kind: "spacing", data, xKey: "a", yKey: "value", xLabel: "Spacing (m)", yLabel: "R" };
+    }
+  }
+
+  // 4) Distance profile: distanceSeries [{ d, value }]
+  const dist = Array.isArray(results?.distanceSeries) ? results.distanceSeries : null;
+  if (Array.isArray(dist) && dist.length && ("d" in (dist[0]||{})) && ("value" in (dist[0]||{}))) {
+    const data = dist.map(d => ({ d: Number(d?.d ?? NaN), value: Number(d?.value ?? NaN) }))
+      .filter(d => Number.isFinite(d.d) && Number.isFinite(d.value));
+    if (data.length) {
+      return { kind: "distance", data, xKey: "d", yKey: "value", xLabel: "Distance", yLabel: "Value" };
+    }
+  }
+
+  // 5) N series: nSeries [{ n, value }]
+  const ns = Array.isArray(results?.nSeries) ? results.nSeries : null;
+  if (Array.isArray(ns) && ns.length && ("n" in (ns[0]||{})) && ("value" in (ns[0]||{}))) {
+    const data = ns.map(d => ({ n: Number(d?.n ?? NaN), value: Number(d?.value ?? NaN) }))
+      .filter(d => Number.isFinite(d.n) && Number.isFinite(d.value));
+    if (data.length) {
+      return { kind: "nseries", data, xKey: "n", yKey: "value", xLabel: "N", yLabel: "Value" };
+    }
+  }
+
+  // 6) Generic: collapse any recognized structure into rows for a multi-series line chart
+  const generic = normalizeSeries(
+    results?.lifeSeriesData ??
+    results?.seriesData ??
+    results?.chartSeries ??
+    results?.series ??
+    null
+  );
+  if (generic.series.length) {
+    return { kind: "generic", data: shapeToRows(generic), xKey: "__x", yKeys: generic.series.map(s => s.name), xLabel: "Index" };
+  }
+
+  return null;
+}
 
 export default function HistoryPage() {
   const {
@@ -237,8 +428,9 @@ export default function HistoryPage() {
                             ? Math.max(...life.map((d) => Number(d.weight) || 0), W_required || 0) * 1.25 || 10
                             : 10;
 
-                          // ✅ Properly exclude lifeSeriesData so the numbers render
-                          const { ...resultsNoLife } = results || {};
+                          const resultsNoSeries = stripSeriesFields(results || {});
+
+                          const primary = buildPrimaryChart(results);
 
                           return (
                             <div
@@ -293,22 +485,33 @@ export default function HistoryPage() {
                                               y={W_required}
                                               stroke="#2563eb"
                                               strokeDasharray="4 2"
-                                              label={{
-                                                value: `At t: ${fmt(W_required, 2)} kg`,
-                                                position: "right",
-                                                fill: "#2563eb",
-                                                fontSize: 12,
-                                              }}
+                                              label={{ value: `At t: ${fmt(W_required, 2)} kg`, position: "right", fill: "#2563eb", fontSize: 12 }}
                                             />
                                           ) : null}
-                                          <Line
-                                            type="monotone"
-                                            dataKey="weight"
-                                            name="Required Weight"
-                                            stroke="#3b82f6"
-                                            dot={false}
-                                            strokeWidth={2}
-                                          />
+                                        </LineChart>
+                                      </ResponsiveContainer>
+                                    </div>
+                                  ) : null}
+
+                                  {primary ? (
+                                    <div className="mb-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-2 h-64">
+                                      <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={primary.data} margin={{ top: 10, right: 20, left: 16, bottom: 0 }}>
+                                          <CartesianGrid strokeDasharray="3 3" />
+                                          <XAxis dataKey={primary.xKey} tick={{ fontSize: 12 }} label={{ value: primary.xLabel || "", position: "insideBottomRight", offset: -4 }} />
+                                          <YAxis domain={primary.yMax ? [0, primary.yMax] : undefined} tick={{ fontSize: 12 }} label={primary.yLabel ? { value: primary.yLabel, angle: -90, position: "insideLeft" } : undefined} />
+                                          <Tooltip />
+                                          {primary.kind === "generic" ? <Legend /> : null}
+                                          {primary.kind === "generic"
+                                            ? (primary.yKeys || []).map((k, i) => (
+                                                <Line key={k || `S${i+1}`} type="monotone" dataKey={k || `S${i+1}`} dot={false} strokeWidth={2} />
+                                              ))
+                                            : (
+                                              <Line type="monotone" dataKey={primary.yKey} stroke="#2563eb" strokeWidth={2} dot={false} />
+                                            )}
+                                          {primary.refX ? (
+                                            <ReferenceLine x={primary.refX} stroke="#ef4444" strokeDasharray="4 4" label={`t=${primary.refX}y`} />
+                                          ) : null}
                                         </LineChart>
                                       </ResponsiveContainer>
                                     </div>
@@ -316,7 +519,7 @@ export default function HistoryPage() {
 
                                   {/* Results JSON (without lifeSeriesData) */}
                                   <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
-                                    {JSON.stringify(resultsNoLife ?? {}, null, 2)}
+                                    {JSON.stringify(resultsNoSeries ?? {}, null, 2)}
                                   </pre>
                                 </div>
                               </div>

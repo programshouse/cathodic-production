@@ -319,6 +319,37 @@ function normalizeSeries(raw) {
     };
   }
   if (Array.isArray(raw)) {
+    // If it's an array of numbers
+    if (raw.every((v) => typeof v === "number" || v == null)) {
+      return {
+        labels: Array.from({ length: raw.length }, (_, i) => i + 1),
+        series: [{ name: "Series 1", data: raw.map(toNum) }],
+      };
+    }
+    // If it's an array of objects, attempt to detect x/y keys
+    if (raw.length && typeof raw[0] === "object" && raw[0] !== null) {
+      const xKey =
+        ("year" in raw[0] && "year") ||
+        ("x" in raw[0] && "x") ||
+        ("t" in raw[0] && "t") ||
+        null;
+      const yKey =
+        ("weight_kg" in raw[0] && "weight_kg") ||
+        ("weight" in raw[0] && "weight") ||
+        ("value" in raw[0] && "value") ||
+        ("y" in raw[0] && "y") ||
+        null;
+      if (xKey && yKey) {
+        const labels = raw.map((d) => String(d?.[xKey]))
+          .map((s, i) => (s == null || s === "undefined" ? String(i + 1) : s));
+        const data = raw.map((d) => toNum(d?.[yKey]));
+        return {
+          labels,
+          series: [{ name: yKey === "weight_kg" || yKey === "weight" ? "Required Weight (kg)" : "Series 1", data }],
+        };
+      }
+    }
+    // Fallback: indexes
     return {
       labels: Array.from({ length: raw.length }, (_, i) => i + 1),
       series: [{ name: "Series 1", data: raw.map(toNum) }],

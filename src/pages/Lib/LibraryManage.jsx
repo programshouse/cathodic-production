@@ -62,13 +62,7 @@ export default function LibraryManage() {
 
   return (
     <PageLayout title="Library (Manage) | CP">
-      <div className="flex items-center gap-3 mb-4">
-        <img src={CPLogo} alt="CP" className="h-12 w-12 rounded-full object-cover ring-2" style={{ ringColor: CP_BLUE }} />
-        <PageHeader
-          title="Library — Admin"
-          description="Upload, manage, and preview reference files for Cathodic Protection modules."
-        />
-      </div>
+
 
       {/* Filters */}
       <CardBox className="mb-6">
@@ -86,18 +80,7 @@ export default function LibraryManage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <select
-              value={typeFilter}
-              onChange={(e)=>setTypeFilter(e.target.value)}
-              className="text-sm px-3 py-2 rounded-xl border bg-white dark:bg-gray-900"
-            >
-              <option value="all">All types</option>
-              <option value="image/">Images</option>
-              <option value="pdf">PDF</option>
-              <option value="word">Word</option>
-              <option value="excel">Excel</option>
-              <option value="text">Text</option>
-            </select>
+           
             <Btn size="sm" onClick={() => fetchlibrary().catch(()=>{})} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</Btn>
             <Btn variant="primary" size="sm" onClick={() => navigate("/admin/library/create")}>+ Create</Btn>
           </div>
@@ -107,7 +90,7 @@ export default function LibraryManage() {
       {/* Featured */}
       <CardBox className="mb-6">
         <SectionHead count={latest12.length} total={filtered.length} title="Latest files" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {/* <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {latest12.map((f) => (
             <FileCard
               key={f.id}
@@ -119,7 +102,7 @@ export default function LibraryManage() {
             />
           ))}
           {latest12.length === 0 && <div className="text-sm text-gray-500">No files yet.</div>}
-        </div>
+        </div> */}
       </CardBox>
 
       {/* Table */}
@@ -276,7 +259,7 @@ function DetailsModal({ item, onClose, brand, accent }) {
           </div>
           <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2 min-h-[240px] rounded-xl border bg-gray-50 flex items-center justify-center overflow-hidden">
-              {isImg && item.url && <img src={item.url} alt={item.title || item.filename} className="max-h-[420px] object-contain" />}
+
               {!isImg && isPdf && item.url && <iframe title="preview" src={item.url} className="w-full h-[380px]" />}
               {!item.url && <div className="text-xs text-gray-500">No preview available</div>}
             </div>

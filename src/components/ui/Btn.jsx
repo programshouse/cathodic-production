@@ -13,20 +13,25 @@ export default function Btn({
   target,
   rel,
 }) {
-  const base = "rounded-full border transition inline-flex items-center justify-center";
+  const base =
+    "rounded-full border transition inline-flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed";
+
   const sizes = {
-    xs: "text-sm px-3 py-1.5",
+    xs: "text-xs px-3 py-1.5",
     sm: "text-sm px-4 py-2",
-    md: "text-base px-5 py-2.5",
+    md: "text-sm md:text-base px-4 md:px-6  md:py-2.5", 
   };
+
   const variants = {
     primary: "border-[#122A56] text-white bg-[#122A56] hover:opacity-90",
     outline: "border-[#122A56] text-[#122A56] bg-white hover:bg-gray-50",
-    danger: "border-rose-300 text-rose-700 hover:bg-rose-50",
-    neutral: "border-gray-300 text-gray-700 hover:bg-gray-50",
+    danger: "border-rose-300 text-rose-700 hover:bg-rose-50 bg-white",
+    neutral: "border-gray-300 text-gray-700 hover:bg-gray-50 bg-white",
   };
 
-  const cls = `${base} ${sizes[size] || sizes.xs} ${variants[variant] || variants.outline} ${className}`;
+  const cls = `${base} ${sizes[size] || sizes.xs} ${
+    variants[variant] || variants.outline
+  } ${className}`;
 
   if (href) {
     return (
@@ -35,6 +40,7 @@ export default function Btn({
       </a>
     );
   }
+
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={cls}>
       {children}

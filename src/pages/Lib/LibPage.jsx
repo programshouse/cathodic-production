@@ -195,11 +195,11 @@ export default function LibPage() {
 
       {/* Featured Cards Grid */}
       <CardBox className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        {/* <div className="flex items-center justify-between mb-4">
           <div className="text-sm font-semibold">Latest files</div>
           <div className="text-[12px] text-gray-500 dark:text-gray-400">Showing {latest5.length} of {filtered.length}</div>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        </div> */}
+        {/* <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {latest5.map((f) => (
             <FileCard key={f.id} f={f}
               onOpen={() => f.url && window.open(f.url, "_blank", "noreferrer")}
@@ -210,7 +210,7 @@ export default function LibPage() {
           {latest5.length === 0 && (
             <div className="text-sm text-gray-500 dark:text-gray-400">No files yet.</div>
           )}
-        </div>
+        </div> */}
       </CardBox>
 
       {/* Full Table with actions */}

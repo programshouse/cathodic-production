@@ -6,6 +6,17 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from "recha
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b"]; // cable, anode, pipeline
 
 export default function CircuitResistanceResults({ results }) {
+  const renderNameLabel = ({ cx, cy, midAngle, outerRadius, fill, name }) => {
+    const RAD = Math.PI / 180;
+    const r = outerRadius + 14;
+    const x = cx + r * Math.cos(-midAngle * RAD);
+    const y = cy + r * Math.sin(-midAngle * RAD);
+    return (
+      <text x={x} y={y} fill={fill} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" fontSize={11}>
+        {name}
+      </text>
+    );
+  };
   if (!results) return null;
   const { R_cable, R_anode, R_pipeline, R_total } = results;
 
@@ -60,8 +71,19 @@ Total: R_total = R_cable + R_anode,total + R_pipeline`}</pre>
           <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">Circuit Resistance Distribution</h4>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e)=>`${e.name}: ${fmt(e.value)} Ω`}>
+              <PieChart margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={4}
+                  label={renderNameLabel}
+                  labelLine={{ stroke: "#94a3b8", strokeWidth: 1 }}
+                >
                   {data.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}

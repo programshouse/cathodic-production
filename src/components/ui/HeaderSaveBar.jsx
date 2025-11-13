@@ -41,6 +41,7 @@ const KEY_TO_FORMULA = {
   solar_sizing_calc: "Solar Sizing",
   tank_mmo_calc: "Tank MMO Anode Sizing",
   resistor_sizing_calc: "Resistor Sizing",
+  rectifier_sizing_calc: "Rectifier Sizing",
 };
 
 // Preferred chart type per module

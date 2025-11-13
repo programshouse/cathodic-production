@@ -31,7 +31,7 @@ export const MODULES = [
   { name: "Solar Sizing",                             path: "/pages/solar-sizing" },
   { name: "Surface Area Calculation",                 path: "/pages/surface-area" },
   { name: "Tank MMO Anode Sizing",                    path: "/pages/tank-mmo-sizing" },
-  { name: "Variable Resistor & Shunt Resistor Sizing",path: "/pages/Variable-Resistor-Shunt" },
+  { name: "Rectifier Sizing",                          path: "/pages/Variable-Resistor-Shunt" },
   { name: "Resistor Sizing",                          path: "/pages/resistor-sizing" },
   { name: "Voltage Gradient",                         path: "/pages/voltage-gradient" },
 ];

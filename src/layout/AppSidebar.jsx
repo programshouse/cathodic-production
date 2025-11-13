@@ -14,41 +14,55 @@ import {
   MdSolarPower,            // Solar Sizing
   MdGridOn,                // Surface Area
   MdBlurCircular,          // Tank MMO Ribbon
-  MdTune,                  // Variable/Shunt Sizing
+  MdTune,                  // Variable/Shunt Sizing & Resistors
   MdShowChart,             // Voltage Gradient
-  MdPowerSettingsNew       // Rectifier Ratings
+  MdPowerSettingsNew       // Rectifier Ratings (extra)
 } from "react-icons/md";
 import { ChevronDownIcon } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
 
+/**
+ * Sidebar order EXACTLY as in the image:
+ *  1  Surface Area Calculation
+ *  2  Current Density Calculation
+ *  3  Coating Factors Calculation
+ *  4  Soil Resistivity
+ *  5  Barnes Layer Resistivity
+ *  6  Groundbed Resistance
+ *  7  Circuit Resistance Module
+ *  8  Galvanic Anode System Calculation
+ *  9  Impressed Current System Calculation
+ * 10  Resistor Sizing
+ * 11  Attenuation & Pipeline Potential profile
+ * 12  Voltage Gradient
+ *
+ * Extra modules (Interference, Solar, Tank MMO, Variable/Shunt, Rectifier)
+ * are added AFTER these in a logical order.
+ */
 const navItems = [
-  { name: "Attenuation & Pipeline Potential profile", icon: <MdTimeline />,            path: "/pages/attenuation" },
-  { name: "Barnes Layer Resistivity",                 icon: <MdLayers />,             path: "/pages/barnes-layer" },
-  { name: "Circuit Resistance Module",                icon: <MdCable />,              path: "/pages/circuit-resistance" },
-  { name: "Coating Factors Calculation",              icon: <MdFormatPaint />,        path: "/pages/coating-factors" },
-  { name: "Current Density Calculation",              icon: <MdWaterDrop />,          path: "/pages/current-density" },
-  { name: "Galvanic Anode System Calculation",        icon: <MdBatteryChargingFull />,path: "/pages/galvanic-anode" },
-  { name: "Groundbed Resistance",                     icon: <MdLandscape />,          path: "/pages/groundbed-resistance" },
-  { name: "Impressed Current System Calculation",     icon: <MdBolt />,               path: "/pages/impressed-current" },
-  { name: "Interference Calculation",                 icon: <MdWifiTethering />,      path: "/pages/interference" },
-  { name: "Soil Resistivity",                         icon: <MdScience />,            path: "/pages/soil-resistivity" },
-  { name: "Solar Sizing",                             icon: <MdSolarPower />,         path: "/pages/solar-sizing" },
-  { name: "Surface Area Calculation",                 icon: <MdGridOn />,             path: "/pages/surface-area" },
-  { name: "Tank MMO Anode Sizing",                    icon: <MdBlurCircular />,       path: "/pages/tank-mmo-sizing" },
-  { name: "Variable Resistor & Shunt Resistor Sizing",icon: <MdTune />,               path: "/pages/Variable-Resistor-Shunt" },
-  { name: "Resistor Sizing",                           icon: <MdTune />,               path: "/pages/resistor-sizing" },
-  { name: "Voltage Gradient",                         icon: <MdShowChart />,          path: "/pages/voltage-gradient" },
+  { name: "Surface Area Calculation",                 icon: <MdGridOn />,              path: "/pages/surface-area" },                    // 1
+  { name: "Current Density Calculation",              icon: <MdWaterDrop />,           path: "/pages/current-density" },                 // 2
+  { name: "Coating Factors Calculation",              icon: <MdFormatPaint />,         path: "/pages/coating-factors" },                 // 3
+  { name: "Soil Resistivity",                         icon: <MdScience />,             path: "/pages/soil-resistivity" },                // 4
+  { name: "Barnes Layer Resistivity",                 icon: <MdLayers />,              path: "/pages/barnes-layer" },                    // 5
+  { name: "Groundbed Resistance",                     icon: <MdLandscape />,           path: "/pages/groundbed-resistance" },            // 6
+  { name: "Circuit Resistance Module",                icon: <MdCable />,               path: "/pages/circuit-resistance" },              // 7
+  { name: "Galvanic Anode System Calculation",        icon: <MdBatteryChargingFull />, path: "/pages/galvanic-anode" },                  // 8
+  { name: "Impressed Current System Calculation",     icon: <MdBolt />,                path: "/pages/impressed-current" },               // 9
+  { name: "Resistor Sizing",                          icon: <MdTune />,                path: "/pages/resistor-sizing" },                 // 10
+  { name: "Attenuation & Pipeline Potential profile", icon: <MdTimeline />,            path: "/pages/attenuation" },                     // 11
+  { name: "Voltage Gradient",                         icon: <MdShowChart />,           path: "/pages/voltage-gradient" },                // 12
+  { name: "Rectifier Sizing",icon: <MdTune />,                path: "/pages/Variable-Resistor-Shunt" },
+  // Extra modules after the main 12
+  // { name: "Interference Calculation",                 icon: <MdWifiTethering />,       path: "/pages/interference" },
+  // { name: "Solar Sizing",                             icon: <MdSolarPower />,          path: "/pages/solar-sizing" },
+  // { name: "Tank MMO Anode Sizing",                    icon: <MdBlurCircular />,        path: "/pages/tank-mmo-sizing" },
+  // { name: "Rectifier Ratings",                        icon: <MdPowerSettingsNew />,    path: "/pages/rectifier-ratings" }, 
 ];
 
 const AppSidebar = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
-
-  function getSortedNavItems(items) {
-    return [...items].sort((a, b) =>
-      (a.name || "").toLowerCase().localeCompare((b.name || "").toLowerCase())
-    );
-  }
 
   const location = useLocation();
   const [openSubmenu, setOpenSubmenu] = useState(null);
@@ -77,7 +91,9 @@ const AppSidebar = () => {
   }, [location, isActive]);
 
   const handleSubmenuToggle = (index) => {
-    setOpenSubmenu((prev) => (prev && prev.index === index ? null : { index }));
+    setOpenSubmenu((prev) =>
+      prev && prev.index === index ? null : { index }
+    );
   };
 
   const baseItem =
@@ -98,51 +114,52 @@ const AppSidebar = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="flex py-8 lg:justify-center">
-<Link
-  to="/"
-  className="block w-full sm:w-auto" // take full width on mobile so centering works
->
-  <div className="flex sm:justify-start justify-center">
-    {isExpanded || isHovered || isMobileOpen ? (
-      <>
-        <img
-          className="block dark:hidden rounded-full sm:mx-0 mx-auto"
-          src="/images/logo/logoos.jpg"
-          alt="logoos"
-          width={140}
-          height={50}
-        />
-        <img
-          className="hidden dark:block sm:mx-0 mx-auto"
-          src="/images1/logo/logoos-dark.svg"
-          alt="logoos"
-          width={100}
-          height={30}
-        />
-      </>
-    ) : (
-      <img
-        className="align-middle rounded-full sm:mx-0 mx-auto"
-        src="/images/logo/logoos.jpg"
-        alt="logoos"
-        width={150}
-        height={120}
-      />
-    )}
-  </div>
-</Link>
-
+        <Link
+          to="/"
+          className="block w-full sm:w-auto"
+        >
+          <div className="flex sm:justify-start justify-center">
+            {isExpanded || isHovered || isMobileOpen ? (
+              <>
+                <img
+                  className="block dark:hidden rounded-full sm:mx-0 mx-auto"
+                  src="/images/logo/logoos.jpg"
+                  alt="logoos"
+                  width={140}
+                  height={50}
+                />
+                <img
+                  className="hidden dark:block sm:mx-0 mx-auto"
+                  src="/images1/logo/logoos-dark.svg"
+                  alt="logoos"
+                  width={100}
+                  height={30}
+                />
+              </>
+            ) : (
+              <img
+                className="align-middle rounded-full sm:mx-0 mx-auto"
+                src="/images/logo/logoos.jpg"
+                alt="logoos"
+                width={150}
+                height={120}
+              />
+            )}
+          </div>
+        </Link>
       </div>
 
       <nav className="no-scrollbar flex flex-col overflow-y-auto pb-6 duration-300 ease-linear">
         <ul className="flex flex-col gap-4">
-          {getSortedNavItems(navItems).map((nav, index) => (
+          {navItems.map((nav, index) => (
             <li key={`${nav.name}-${nav.path}`}>
               {nav.subItems ? (
                 <button
                   onClick={() => handleSubmenuToggle(index)}
                   className={`${baseItem} ${
-                    !isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "lg:justify-start"
                   }`}
                 >
                   <span className={baseIcon}>{nav.icon}</span>
@@ -162,7 +179,9 @@ const AppSidebar = () => {
                   <Link
                     to={nav.path}
                     className={`${baseItem} ${
-                      !isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"
+                      !isExpanded && !isHovered
+                        ? "lg:justify-center"
+                        : "lg:justify-start"
                     } ${isActive(nav.path) ? "bg-gray-200/40" : ""}`}
                   >
                     <span className={baseIcon}>{nav.icon}</span>

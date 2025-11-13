@@ -17,15 +17,26 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/* ------------ extra helper so exportFolderPdf can use it ------------ */
+const authHeaders = () => {
+  const token = localStorage.getItem("access_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 /* ------------------------------ helpers ------------------------------ */
 const normalizeList = (data) =>
-  Array.isArray(data) ? data
-  : Array.isArray(data?.data) ? data.data
-  : Array.isArray(data?.items) ? data.items
-  : Array.isArray(data?.result) ? data.result
-  : [];
+  Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+    ? data.data
+    : Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data?.result)
+    ? data.result
+    : [];
 
-const normalizeItem = (data) => data?.data ?? data?.item ?? data?.result ?? data;
+const normalizeItem = (data) =>
+  data?.data ?? data?.item ?? data?.result ?? data;
 
 const errMsg = (err, fallback) =>
   err?.response?.data?.message ||
@@ -58,7 +69,15 @@ const normCalc = (row = {}) => ({
 });
 
 /** Draw a tiny line chart for lifeSeriesData using jsPDF primitives */
-function drawLifeMiniChart(doc, data = [], yRef = null, x = 24, y = 0, w = 260, h = 120) {
+function drawLifeMiniChart(
+  doc,
+  data = [],
+  yRef = null,
+  x = 24,
+  y = 0,
+  w = 260,
+  h = 120
+) {
   if (!Array.isArray(data) || data.length === 0) return 0;
   const xs = data.map((d) => Number(d.year) || 0);
   const ys = data.map((d) => Number(d.weight) || 0);
@@ -83,7 +102,9 @@ function drawLifeMiniChart(doc, data = [], yRef = null, x = 24, y = 0, w = 260, 
     doc.setLineDash([]);
     doc.setTextColor(37, 99, 235);
     doc.setFontSize(8);
-    doc.text(`At t: ${fmt(yRef, 2)} kg`, x + w - 4, yLine - 4, { align: "right" });
+    doc.text(`At t: ${fmt(yRef, 2)} kg`, x + w - 4, yLine - 4, {
+      align: "right",
+    });
     doc.setTextColor(0);
   }
 
@@ -95,7 +116,12 @@ function drawLifeMiniChart(doc, data = [], yRef = null, x = 24, y = 0, w = 260, 
     const yy = toY(Number(p.weight) || 0);
     if (i > 0) {
       const prev = data[i - 1];
-      doc.line(toX(Number(prev.year) || 0), toY(Number(prev.weight) || 0), xx, yy);
+      doc.line(
+        toX(Number(prev.year) || 0),
+        toY(Number(prev.weight) || 0),
+        xx,
+        yy
+      );
     }
   });
 
@@ -112,13 +138,23 @@ function drawLifeMiniChart(doc, data = [], yRef = null, x = 24, y = 0, w = 260, 
 function drawSeriesMiniChart(
   doc,
   data = [],
-  { xKey = "x", yKey = "value", title = "Series Chart", xLabel = "", yLabel = "", refY = null },
-  x = 24, y = 0, w = 260, h = 120
+  {
+    xKey = "x",
+    yKey = "value",
+    title = "Series Chart",
+    xLabel = "",
+    yLabel = "",
+    refY = null,
+  },
+  x = 24,
+  y = 0,
+  w = 260,
+  h = 120
 ) {
   if (!Array.isArray(data) || data.length === 0) return 0;
 
-  const xs = data.map(d => Number(d?.[xKey]) || 0);
-  const ys = data.map(d => Number(d?.[yKey]) || 0);
+  const xs = data.map((d) => Number(d?.[xKey]) || 0);
+  const ys = data.map((d) => Number(d?.[yKey]) || 0);
   const minX = Math.min(...xs);
   const maxX = Math.max(...xs);
   const minY = 0;
@@ -148,7 +184,12 @@ function drawSeriesMiniChart(
     const yy = toY(Number(p?.[yKey]) || 0);
     if (i > 0) {
       const prev = data[i - 1];
-      doc.line(toX(Number(prev?.[xKey]) || 0), toY(Number(prev?.[yKey]) || 0), xx, yy);
+      doc.line(
+        toX(Number(prev?.[xKey]) || 0),
+        toY(Number(prev?.[yKey]) || 0),
+        xx,
+        yy
+      );
     }
   });
 
@@ -199,7 +240,7 @@ export const useFoldersStore = create((set, get) => ({
     }
   },
 
-  // Back-compat alias
+  // Back-compat alias (used in HistoryPage)
   async fetchFolders() {
     return get().getAll();
   },
@@ -237,7 +278,9 @@ export const useFoldersStore = create((set, get) => ({
         { headers: { "Content-Type": "application/json" } }
       );
       const created = normalizeItem(res?.data);
-      try { await get().getAll(); } catch {}
+      try {
+        await get().getAll();
+      } catch {}
       set({ loading: false });
       toast.success("Folder created");
       return created;
@@ -255,7 +298,9 @@ export const useFoldersStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       await api.delete(`folders/${id}`);
-      try { await get().getAll(); } catch {}
+      try {
+        await get().getAll();
+      } catch {}
       set({ loading: false });
       toast.success("Folder deleted");
       return true;
@@ -267,7 +312,7 @@ export const useFoldersStore = create((set, get) => ({
     }
   },
 
-  // EXPORT AS PDF (Inputs + Results (no arrays) + charts for series)
+  // CLIENT-SIDE EXPORT AS PDF (Inputs + Results (no arrays) + charts)
   async exportAsPdf(folderId) {
     if (!folderId) {
       const msg = "exportAsPdf: 'folderId' is required";
@@ -280,16 +325,27 @@ export const useFoldersStore = create((set, get) => ({
     try {
       // 1) Folder name
       const folderRes = await api.get(`folders/${folderId}`);
-      const folder = normalizeItem(folderRes?.data) || { id: folderId, name: `Folder ${folderId}` };
+      const folder =
+        normalizeItem(folderRes?.data) || {
+          id: folderId,
+          name: `Folder ${folderId}`,
+        };
 
       // 2) Prefer calculations in folder; fallback to history endpoint
-      let calcs = Array.isArray(folder?.calculations) ? folder.calculations : [];
+      let calcs = Array.isArray(folder?.calculations)
+        ? folder.calculations
+        : [];
       if (!calcs.length) {
         try {
-          const histRes = await api.get("calculation-history", { params: { folder_id: folderId, per_page: 1000 } });
+          const histRes = await api.get("calculation-history", {
+            params: { folder_id: folderId, per_page: 1000 },
+          });
           calcs = normalizeList(histRes?.data);
         } catch (e) {
-          console.warn("history fallback failed:", e?.response?.data || e?.message);
+          console.warn(
+            "history fallback failed:",
+            e?.response?.data || e?.message
+          );
         }
       }
 
@@ -304,7 +360,11 @@ export const useFoldersStore = create((set, get) => ({
       // Header
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
-      doc.text(`Folder: ${folder?.name || ""} (ID: ${folderId})`, 24, y);
+      doc.text(
+        `Folder: ${folder?.name || ""} (ID: ${folderId})`,
+        24,
+        y
+      );
       y += 16;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
@@ -327,10 +387,16 @@ export const useFoldersStore = create((set, get) => ({
         ensureSpace(total);
 
         doc.setFont("helvetica", "bold");
-        headingLines.forEach((ln) => { doc.text(ln, 24, y); y += 12; });
+        headingLines.forEach((ln) => {
+          doc.text(ln, 24, y);
+          y += 12;
+        });
 
         doc.setFont("helvetica", "normal");
-        bodyLines.forEach((ln) => { doc.text(ln, 24, y); y += 12; });
+        bodyLines.forEach((ln) => {
+          doc.text(ln, 24, y);
+          y += 12;
+        });
 
         y += 6;
       };
@@ -339,8 +405,12 @@ export const useFoldersStore = create((set, get) => ({
         doc.text("No calculations in this folder.", 24, y);
       } else {
         items.forEach((row, idx) => {
-          const title = row?.title || row?.formula_name || `Calculation #${row?.id ?? idx + 1}`;
-          const stamp = row?.created_at || row?.updated_at || row?.ts || "";
+          const title =
+            row?.title ||
+            row?.formula_name ||
+            `Calculation #${row?.id ?? idx + 1}`;
+          const stamp =
+            row?.created_at || row?.updated_at || row?.ts || "";
           const status = row?.status ? String(row.status) : "";
 
           // Extract series (to chart), sanitize results for JSON
@@ -364,8 +434,12 @@ export const useFoldersStore = create((set, get) => ({
           // Sub
           doc.setFont("helvetica", "normal");
           doc.setFontSize(10);
-          const sub = [stamp ? `Date: ${tsFmt(stamp)}` : "", status ? `Status: ${status}` : ""]
-            .filter(Boolean).join("  •  ");
+          const sub = [
+            stamp ? `Date: ${tsFmt(stamp)}` : "",
+            status ? `Status: ${status}` : "",
+          ]
+            .filter(Boolean)
+            .join("  •  ");
           if (sub) {
             doc.text(sub, 24, y);
             y += 12;
@@ -381,35 +455,59 @@ export const useFoldersStore = create((set, get) => ({
             charts.push({
               kind: "life",
               data: lifeSeriesData,
-              params: { refY: Number(row?.results?.W_required || 0) }
+              params: { refY: Number(row?.results?.W_required || 0) },
             });
           }
           if (Array.isArray(series) && series.length) {
             charts.push({
               kind: "generic",
               data: series,
-              options: { xKey: "n", yKey: "value", title: "Series", xLabel: "X", yLabel: "Value" }
+              options: {
+                xKey: "n",
+                yKey: "value",
+                title: "Series",
+                xLabel: "X",
+                yLabel: "Value",
+              },
             });
           }
           if (Array.isArray(spacingSeries) && spacingSeries.length) {
             charts.push({
               kind: "generic",
               data: spacingSeries,
-              options: { xKey: "a", yKey: "value", title: "Resistance vs Spacing", xLabel: "Spacing (m)", yLabel: "R" }
+              options: {
+                xKey: "a",
+                yKey: "value",
+                title: "Resistance vs Spacing",
+                xLabel: "Spacing (m)",
+                yLabel: "R",
+              },
             });
           }
           if (Array.isArray(distanceSeries) && distanceSeries.length) {
             charts.push({
               kind: "generic",
               data: distanceSeries,
-              options: { xKey: "d", yKey: "value", title: "Profile vs Distance", xLabel: "Distance", yLabel: "Value" }
+              options: {
+                xKey: "d",
+                yKey: "value",
+                title: "Profile vs Distance",
+                xLabel: "Distance",
+                yLabel: "Value",
+              },
             });
           }
           if (Array.isArray(nSeries) && nSeries.length) {
             charts.push({
               kind: "generic",
               data: nSeries,
-              options: { xKey: "n", yKey: "value", title: "Series vs N", xLabel: "N", yLabel: "Value" }
+              options: {
+                xKey: "n",
+                yKey: "value",
+                title: "Series vs N",
+                xLabel: "N",
+                yLabel: "Value",
+              },
             });
           }
 
@@ -423,7 +521,15 @@ export const useFoldersStore = create((set, get) => ({
             charts.forEach((c) => {
               ensureSpace(140);
               if (c.kind === "life") {
-                y += drawLifeMiniChart(doc, c.data, c.params?.refY, 24, y, pageW - 48, 120);
+                y += drawLifeMiniChart(
+                  doc,
+                  c.data,
+                  c.params?.refY,
+                  24,
+                  y,
+                  pageW - 48,
+                  120
+                );
               } else {
                 const opts = c.options || {};
                 y += drawSeriesMiniChart(
@@ -435,9 +541,12 @@ export const useFoldersStore = create((set, get) => ({
                     title: opts.title || "Series Chart",
                     xLabel: opts.xLabel || "",
                     yLabel: opts.yLabel || "",
-                    refY: opts.refY
+                    refY: opts.refY,
                   },
-                  24, y, pageW - 48, 120
+                  24,
+                  y,
+                  pageW - 48,
+                  120
                 );
               }
             });
@@ -453,7 +562,9 @@ export const useFoldersStore = create((set, get) => ({
         });
       }
 
-      const safeName = String(folder?.name || `folder-${folderId}`)
+      const safeName = String(
+        folder?.name || `folder-${folderId}`
+      )
         .replace(/[\\/:*?"<>|]+/g, "_")
         .replace(/\s+/g, " ")
         .trim();
@@ -470,7 +581,7 @@ export const useFoldersStore = create((set, get) => ({
     }
   },
 
-  /** Backend export: GET /folders/:id/export -> Blob (preferred if available) */
+  /** BACKEND EXPORT: GET /folders/:id/export -> Blob */
   async exportFolderPdf(id) {
     if (!id) {
       const msg = "exportFolderPdf: 'id' is required";
@@ -488,7 +599,9 @@ export const useFoldersStore = create((set, get) => ({
       set({ loading: false });
 
       let filename = `folder-${id}.pdf`;
-      const cd = res.headers?.["content-disposition"] || res.headers?.get?.("content-disposition");
+      const cd =
+        res.headers?.["content-disposition"] ||
+        res.headers?.get?.("content-disposition");
       if (cd && /filename="?([^";]+)"?/i.test(cd)) {
         filename = decodeURIComponent(RegExp.$1);
       }

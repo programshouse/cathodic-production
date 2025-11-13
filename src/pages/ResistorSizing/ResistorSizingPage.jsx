@@ -8,7 +8,7 @@ import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 import ResistorSizingForm from "./ResistorSizingForm";
 import ResistorSizingResults from "./ResistorSizingResults";
-import { computeResistorSizing, toVolts, toAmps } from "./utils";
+import { computeRectifierSizing, toAmps } from "./utils";
 
 export default class ResistorSizingPage extends React.Component {
   constructor(props) {
@@ -16,7 +16,7 @@ export default class ResistorSizingPage extends React.Component {
     let parsed = null;
     if (typeof window !== 'undefined') {
       try {
-        const saved = window.localStorage.getItem('resistor_sizing_calc');
+        const saved = window.localStorage.getItem('rectifier_sizing_calc');
         parsed = saved ? JSON.parse(saved) : null;
       } catch { /* ignore malformed storage */ }
     }
@@ -27,55 +27,49 @@ export default class ResistorSizingPage extends React.Component {
       savedInputs: parsed?.inputs || null,
       activeTab: "results",
     };
-    // Right column ref for HeaderSaveBar screenshot/PDF
     this.captureRef = React.createRef();
   }
 
   onSubmit = (raw) => {
     const {
-      V_rect_value, V_rect_unit,
-      I_target_value, I_target_unit,
+      I_required_value, I_required_unit,
       R_circuit_ohm,
-      V_shunt_value, V_shunt_unit,
-      I_shunt_value, I_shunt_unit,
+      E_native_value, E_native_unit,
+      E_protect_value, E_protect_unit,
+      safety_factor,
     } = raw || {};
 
-    if (!(Number(V_rect_value) > 0) || !(Number(I_target_value) > 0) || !(Number(R_circuit_ohm) >= 0)) {
-      this.setState({ error: "Provide rectifier voltage, target current, and circuit resistance." });
-      return;
-    }
-    if (!(Number(V_shunt_value) > 0) || !(Number(I_shunt_value) > 0)) {
-      this.setState({ error: "Provide shunt voltage and shunt current." });
+    if (!(Number(I_required_value) > 0) || !(Number(R_circuit_ohm) >= 0) || !(Number(safety_factor) >= 1)) {
+      this.setState({ error: "Provide required current, circuit resistance, and safety factor (>=1)." });
       return;
     }
 
-    const V_rect_V = toVolts(V_rect_value, V_rect_unit);
-    const I_target_A = toAmps(I_target_value, I_target_unit);
-    const I_shunt_A = toAmps(I_shunt_value, I_shunt_unit);
+    const I_required_A = toAmps(I_required_value, I_required_unit);
 
     const inputs = {
-      V_rect_value, V_rect_unit,
-      I_target_value, I_target_unit,
+      I_required_value, I_required_unit,
       R_circuit_ohm,
-      V_shunt_value, V_shunt_unit,
-      I_shunt_value, I_shunt_unit,
+      E_native_value, E_native_unit,
+      E_protect_value, E_protect_unit,
+      safety_factor,
     };
 
-    const results = computeResistorSizing({
-      V_rect_V,
-      I_target_A,
+    const results = computeRectifierSizing({
+      I_required_A,
       R_circuit_ohm: Number(R_circuit_ohm || 0),
-      V_shunt_value: Number(V_shunt_value || 0),
-      V_shunt_unit,
-      I_shunt_A,
+      E_native_input: Number(E_native_value || 0),
+      E_native_unit,
+      E_protect_input: Number(E_protect_value || 0),
+      E_protect_unit,
+      safety_factor: Number(safety_factor || 1),
     });
 
-    try { window.localStorage.setItem('resistor_sizing_calc', JSON.stringify({ inputs, results })); } catch { /* ignore */ }
+    try { window.localStorage.setItem('rectifier_sizing_calc', JSON.stringify({ inputs, results })); } catch { /* ignore */ }
     this.setState({ results, savedInputs: inputs, error: null, activeTab: "results" });
   };
 
   onResetAll = () => {
-    try { window.localStorage.removeItem('resistor_sizing_calc'); } catch { /* ignore */ }
+    try { window.localStorage.removeItem('rectifier_sizing_calc'); } catch { /* ignore */ }
     this.setState({ results: null, error: null, savedInputs: null, activeTab: "results" });
   };
 
@@ -83,29 +77,22 @@ export default class ResistorSizingPage extends React.Component {
 
   render() {
     const { submitting, results, error, savedInputs, activeTab } = this.state;
+    const pageTitle = 'Rectifier Sizing';
 
-    const path = (typeof window !== 'undefined' && window.location && window.location.pathname)
-      ? window.location.pathname
-      : '';
-    const isVarShunt = path.toLowerCase().includes('variable-resistor-shunt');
-    const pageTitle = isVarShunt
-      ? 'Variable Resistor & Shunt Resistor Sizing'
-      : 'Resistor Sizing';
-
-    // 🔹 Header save bar under header (consistent with other modules)
     const headerActions = (
       <HeaderSaveBar
-        moduleKey="resistor_sizing_calc"                 // maps to your formula map
+        moduleKey="rectifier_sizing_calc"
         moduleLabel={pageTitle}
         inputs={savedInputs}
         results={results}
         captureRef={this.captureRef}
         formulaName={pageTitle}
-        modulePath="/pages/resistor-sizing"
+        modulePath="/pages/Variable-Resistor-Shunt"
         buildName={({ inputs, project }) => {
-          const v = inputs?.V_rect_value ? `${inputs.V_rect_value} ${inputs.V_rect_unit || ''}`.trim() : "—";
-          const i = inputs?.I_target_value ? `${inputs.I_target_value} ${inputs.I_target_unit || ''}`.trim() : "—";
-          return `${project?.name || "Default"} • Vrect=${v} • Itarget=${i}`;
+          const i = inputs?.I_required_value ? `${inputs.I_required_value} ${inputs.I_required_unit || ''}`.trim() : "—";
+          const r = inputs?.R_circuit_ohm ?? "—";
+          const sf = inputs?.safety_factor ?? "—";
+          return `${project?.name || "Default"} • I=${i} • R=${r}Ω • SF=${sf}`;
         }}
       />
     );
@@ -131,21 +118,29 @@ export default class ResistorSizingPage extends React.Component {
           </div>
         }
         right={
-          // 📸 This block is captured in the PDF (no series numbers present in this module)
           <div className="space-y-4" ref={this.captureRef}>
             <ModuleCard
               title="Equations"
               subtitle="Sizing relations"
               actions={<span className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900">Formula</span>}
             >
-              <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Variable:  Rv = V/I − Rc    ,   P = I^2 · Rv
-Shunt:     R  = V/I        ,   P = I^2 · R`}</pre>
+              <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Required output voltage:
+V_required = (I_required × R_circuit) + V_driving
+Where V_driving = |E_protect − E_native|
+
+Rectifier current rating:
+I_rectifier = I_required × Safety Factor
+
+Rectifier voltage rating:
+V_rectifier = V_required × Safety Factor
+
+Required power:
+P_rectifier = V_required × I_required`}</pre>
               <div className="mt-2">
                 <ResetPill onClick={this.onResetAll} />
               </div>
             </ModuleCard>
 
-            {/* Keep layout parity with other pages using Tabs (single Results tab for now) */}
             <Tabs
               items={[{ key: "results", label: "Results" }]}
               activeKey={activeTab}

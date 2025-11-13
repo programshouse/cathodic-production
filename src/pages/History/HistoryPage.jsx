@@ -67,10 +67,15 @@ function normalizeSeries(raw) {
     if (raw.every((v) => typeof v === "number" || v == null)) {
       return {
         labels: Array.from({ length: raw.length }, (_, i) => i + 1),
-        series: [{ name: "Series 1", data: raw.map((v) => {
-          const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
-          return Number.isFinite(n) ? n : null;
-        }) }],
+        series: [
+          {
+            name: "Series 1",
+            data: raw.map((v) => {
+              const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
+              return Number.isFinite(n) ? n : null;
+            }),
+          },
+        ],
       };
     }
     // If it's an array of objects, attempt to detect x/y keys
@@ -88,26 +93,36 @@ function normalizeSeries(raw) {
         ("y" in raw[0] && "y") ||
         null;
       if (xKey && yKey) {
-        const labels = raw.map((d) => String(d?.[xKey]))
-          .map((s, i) => (s == null || s === "undefined" ? String(i + 1) : s));
+        const labels = raw
+          .map((d) => String(d?.[xKey]))
+          .map((s, i) =>
+            s == null || s === "undefined" ? String(i + 1) : s
+          );
         const data = raw.map((d) => {
           const n = Number(d?.[yKey]);
           return Number.isFinite(n) ? n : null;
         });
         const name =
-          yKey === "weight_kg" || yKey === "weight" ? "Required Weight (kg)" :
-          yKey === "V_int" ? "Interference Voltage (V)" :
-          "Series 1";
+          yKey === "weight_kg" || yKey === "weight"
+            ? "Required Weight (kg)"
+            : yKey === "V_int"
+            ? "Interference Voltage (V)"
+            : "Series 1";
         return { labels, series: [{ name, data }] };
       }
     }
     // Fallback: indexes
     return {
       labels: Array.from({ length: raw.length }, (_, i) => i + 1),
-      series: [{ name: "Series 1", data: raw.map((v) => {
-        const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
-        return Number.isFinite(n) ? n : null;
-      }) }],
+      series: [
+        {
+          name: "Series 1",
+          data: raw.map((v) => {
+            const n = typeof v === "number" ? v : v == null ? NaN : Number(v);
+            return Number.isFinite(n) ? n : null;
+          }),
+        },
+      ],
     };
   }
   return { labels: [], series: [] };
@@ -115,7 +130,9 @@ function normalizeSeries(raw) {
 
 function shapeToRows(shape) {
   const maxLen = Math.max(0, ...shape.series.map((s) => s.data.length));
-  const labels = shape.labels?.length ? shape.labels : Array.from({ length: maxLen }, (_, i) => i + 1);
+  const labels = shape.labels?.length
+    ? shape.labels
+    : Array.from({ length: maxLen }, (_, i) => i + 1);
   const rows = [];
   for (let i = 0; i < maxLen; i++) {
     const row = { __x: String(labels[i] ?? i + 1) };
@@ -131,16 +148,7 @@ function shapeToRows(shape) {
 // Remove any array/series-like fields from results before printing JSON in History
 function stripSeriesFields(results) {
   if (!results || typeof results !== "object") return {};
-  const {
-    lifeSeriesData,
-    series,
-    seriesData,
-    chartSeries,
-    spacingSeries,
-    distanceSeries,
-    nSeries,
-    ...rest
-  } = results || {};
+  const { ...rest } = results || {};
   const clean = {};
   for (const [k, v] of Object.entries(rest)) {
     if (Array.isArray(v)) continue; // drop any arrays
@@ -150,15 +158,55 @@ function stripSeriesFields(results) {
 }
 
 // Build a single primary chart configuration per results, preferring module-style series.
+// Reduce a generic chart to at most 2 series by picking those with the most data
+function limitGenericToTwo(chart) {
+  if (!chart || chart.kind !== "generic") return chart;
+  const yKeys = Array.isArray(chart.yKeys) ? chart.yKeys.slice() : [];
+  if (yKeys.length <= 2) return chart;
+
+  // Score each series by count of finite values
+  const scores = yKeys.map((k) => {
+    const count = (chart.data || []).reduce(
+      (acc, row) => acc + (Number.isFinite(Number(row?.[k])) ? 1 : 0),
+      0
+    );
+    return { key: k, count };
+  });
+  scores.sort((a, b) => b.count - a.count);
+  const keep = scores.slice(0, 2).map((s) => s.key);
+
+  // Strip other series from data rows
+  const data = (chart.data || []).map((row) => {
+    const { __x } = row;
+    const next = { __x };
+    for (const k of keep) next[k] = row[k];
+    return next;
+  });
+
+  return { ...chart, data, yKeys: keep };
+}
+
 function buildPrimaryChart(results = {}) {
   // 1) Impressed/Galvanic style: [{year, weight or weight_kg}] with optional inputs.design_life_years
-  const lifeRaw = Array.isArray(results?.lifeSeriesData) ? results.lifeSeriesData : null;
+  const lifeRaw = Array.isArray(results?.lifeSeriesData)
+    ? results.lifeSeriesData
+    : null;
   const icRaw = Array.isArray(results?.series) ? results.series : lifeRaw;
-  if (Array.isArray(icRaw) && icRaw.length && ("year" in (icRaw[0]||{}) || "x" in (icRaw[0]||{})) && ("weight" in (icRaw[0]||{}) || "weight_kg" in (icRaw[0]||{}))) {
-    const data = icRaw.map(d => ({ year: Number(d?.year ?? d?.x ?? NaN), weight_kg: Number(d?.weight_kg ?? d?.weight ?? NaN) }))
-      .filter(d => Number.isFinite(d.year) && Number.isFinite(d.weight_kg));
+  if (
+    Array.isArray(icRaw) &&
+    icRaw.length &&
+    (("year" in (icRaw[0] || {})) || ("x" in (icRaw[0] || {}))) &&
+    (("weight" in (icRaw[0] || {})) || ("weight_kg" in (icRaw[0] || {})))
+  ) {
+    const data = icRaw
+      .map((d) => ({
+        year: Number(d?.year ?? d?.x ?? NaN),
+        weight_kg: Number(d?.weight_kg ?? d?.weight ?? NaN),
+      }))
+      .filter((d) => Number.isFinite(d.year) && Number.isFinite(d.weight_kg));
     if (data.length) {
-      const yMax = Math.max(1, Math.max(...data.map(d => d.weight_kg))) * 1.25;
+      const yMax =
+        Math.max(1, Math.max(...data.map((d) => d.weight_kg))) * 1.25;
       const refX = Number(results?.inputs?.design_life_years);
       return {
         kind: "impressed",
@@ -172,12 +220,78 @@ function buildPrimaryChart(results = {}) {
       };
     }
   }
+  // 1a) Impressed FeSiCr fallback: rebuild series if backend stripped it
+  if (results?.inputs?.anode_type === "FeSiCr") {
+    const IA = Number(results?.I_A ?? 0);
+    const U = Number(results?.inputs?.capacity_Ah_per_kg ?? 0);
+    const eta = Number(results?.inputs?.eta ?? 0.5);
+    const yearsMax = Math.max(
+      1,
+      Number(results?.inputs?.design_life_years ?? 10)
+    );
+    if (IA >= 0 && U > 0 && eta > 0) {
+      const data = Array.from({ length: yearsMax }, (_, i) => {
+        const year = i + 1;
+        const weight_kg = (IA * year * 8760) / (U * eta);
+        return { year, weight_kg };
+      });
+      const yMax =
+        Math.max(1, Math.max(...data.map((d) => d.weight_kg))) * 1.25;
+      return {
+        kind: "impressed",
+        data,
+        xKey: "year",
+        yKey: "weight_kg",
+        xLabel: "Year",
+        yLabel: "Required Weight (kg)",
+        yMax,
+        refX: yearsMax || null,
+      };
+    }
+  }
+
+  // 1b) Impressed MMO fallback: Quantity vs Safety Factor around current SF
+  if (results?.inputs?.anode_type === "MMO") {
+    const IA = Number(results?.I_A ?? 0);
+    const Is = Number(
+      results?.anode?.I_single_A ?? results?.inputs?.I_single_A ?? 0
+    );
+    const sfCenter = Number(results?.inputs?.safety_factor ?? 1.1);
+    if (Is > 0 && IA >= 0) {
+      const lo = Math.max(0.5, sfCenter - 0.4);
+      const hi = sfCenter + 0.4;
+      const step = 0.05;
+      const data = [];
+      for (let s = lo; s <= hi + 1e-9; s += step) {
+        const sf = Number(s.toFixed(2));
+        const N = (IA / Is) * sf;
+        data.push({ sf, N });
+      }
+      return {
+        kind: "mmo_sf",
+        data,
+        xKey: "sf",
+        yKey: "N",
+        xLabel: "Safety Factor (SF)",
+        yLabel: "Quantity (N)",
+      };
+    }
+  }
 
   // 2) Interference style: [{ d_m, V_int }]
   const intRaw = Array.isArray(results?.series) ? results.series : null;
-  if (Array.isArray(intRaw) && intRaw.length && ("d_m" in (intRaw[0]||{})) && ("V_int" in (intRaw[0]||{}))) {
-    const data = intRaw.map(d => ({ d_m: Number(d?.d_m ?? NaN), V_int: Number(d?.V_int ?? NaN) }))
-      .filter(d => Number.isFinite(d.d_m) && Number.isFinite(d.V_int));
+  if (
+    Array.isArray(intRaw) &&
+    intRaw.length &&
+    "d_m" in (intRaw[0] || {}) &&
+    "V_int" in (intRaw[0] || {})
+  ) {
+    const data = intRaw
+      .map((d) => ({
+        d_m: Number(d?.d_m ?? NaN),
+        V_int: Number(d?.V_int ?? NaN),
+      }))
+      .filter((d) => Number.isFinite(d.d_m) && Number.isFinite(d.V_int));
     if (data.length) {
       return {
         kind: "interference",
@@ -191,45 +305,106 @@ function buildPrimaryChart(results = {}) {
   }
 
   // 3) Soil resistivity-like: spacingSeries [{ a, value }]
-  const sp = Array.isArray(results?.spacingSeries) ? results.spacingSeries : null;
-  if (Array.isArray(sp) && sp.length && ("a" in (sp[0]||{})) && ("value" in (sp[0]||{}))) {
-    const data = sp.map(d => ({ a: Number(d?.a ?? NaN), value: Number(d?.value ?? NaN) }))
-      .filter(d => Number.isFinite(d.a) && Number.isFinite(d.value));
+  const sp = Array.isArray(results?.spacingSeries)
+    ? results.spacingSeries
+    : null;
+  if (
+    Array.isArray(sp) &&
+    sp.length &&
+    "a" in (sp[0] || {}) &&
+    "value" in (sp[0] || {})
+  ) {
+    const data = sp
+      .map((d) => ({
+        a: Number(d?.a ?? NaN),
+        value: Number(d?.value ?? NaN),
+      }))
+      .filter((d) => Number.isFinite(d.a) && Number.isFinite(d.value));
     if (data.length) {
-      return { kind: "spacing", data, xKey: "a", yKey: "value", xLabel: "Spacing (m)", yLabel: "R" };
+      return {
+        kind: "spacing",
+        data,
+        xKey: "a",
+        yKey: "value",
+        xLabel: "Spacing (m)",
+        yLabel: "R",
+      };
     }
   }
 
   // 4) Distance profile: distanceSeries [{ d, value }]
-  const dist = Array.isArray(results?.distanceSeries) ? results.distanceSeries : null;
-  if (Array.isArray(dist) && dist.length && ("d" in (dist[0]||{})) && ("value" in (dist[0]||{}))) {
-    const data = dist.map(d => ({ d: Number(d?.d ?? NaN), value: Number(d?.value ?? NaN) }))
-      .filter(d => Number.isFinite(d.d) && Number.isFinite(d.value));
+  const dist = Array.isArray(results?.distanceSeries)
+    ? results.distanceSeries
+    : null;
+  if (
+    Array.isArray(dist) &&
+    dist.length &&
+    "d" in (dist[0] || {}) &&
+    "value" in (dist[0] || {})
+  ) {
+    const data = dist
+      .map((d) => ({
+        d: Number(d?.d ?? NaN),
+        value: Number(d?.value ?? NaN),
+      }))
+      .filter((d) => Number.isFinite(d.d) && Number.isFinite(d.value));
     if (data.length) {
-      return { kind: "distance", data, xKey: "d", yKey: "value", xLabel: "Distance", yLabel: "Value" };
+      return {
+        kind: "distance",
+        data,
+        xKey: "d",
+        yKey: "value",
+        xLabel: "Distance",
+        yLabel: "Value",
+      };
     }
   }
 
   // 5) N series: nSeries [{ n, value }]
   const ns = Array.isArray(results?.nSeries) ? results.nSeries : null;
-  if (Array.isArray(ns) && ns.length && ("n" in (ns[0]||{})) && ("value" in (ns[0]||{}))) {
-    const data = ns.map(d => ({ n: Number(d?.n ?? NaN), value: Number(d?.value ?? NaN) }))
-      .filter(d => Number.isFinite(d.n) && Number.isFinite(d.value));
+  if (
+    Array.isArray(ns) &&
+    ns.length &&
+    "n" in (ns[0] || {}) &&
+    "value" in (ns[0] || {})
+  ) {
+    const data = ns
+      .map((d) => ({
+        n: Number(d?.n ?? NaN),
+        value: Number(d?.value ?? NaN),
+      }))
+      .filter((d) => Number.isFinite(d.n) && Number.isFinite(d.value));
     if (data.length) {
-      return { kind: "nseries", data, xKey: "n", yKey: "value", xLabel: "N", yLabel: "Value" };
+      return {
+        kind: "nseries",
+        data,
+        xKey: "n",
+        yKey: "value",
+        xLabel: "N",
+        yLabel: "Value",
+      };
     }
   }
 
   // 6) Generic: collapse any recognized structure into rows for a multi-series line chart
   const generic = normalizeSeries(
     results?.lifeSeriesData ??
-    results?.seriesData ??
-    results?.chartSeries ??
-    results?.series ??
-    null
+      results?.seriesData ??
+      results?.chartSeries ??
+      results?.series ??
+      null
   );
-  if (generic.series.length) {
-    return { kind: "generic", data: shapeToRows(generic), xKey: "__x", yKeys: generic.series.map(s => s.name), xLabel: "Index" };
+
+  if (generic.series.length && generic.labels.length) {
+    const rows = shapeToRows(generic);
+    const yKeys = generic.series.map((s) => s.name || "Series");
+    const chart = {
+      kind: "generic",
+      data: rows,
+      xKey: "__x",
+      yKeys,
+    };
+    return limitGenericToTwo(chart);
   }
 
   return null;
@@ -300,7 +475,12 @@ export default function HistoryPage() {
   };
 
   const handleDeleteFolder = async (folderId, folderName) => {
-    if (!window.confirm(`Delete folder "${folderName || folderId}"? This cannot be undone.`)) return;
+    if (
+      !window.confirm(
+        `Delete folder "${folderName || folderId}"? This cannot be undone.`
+      )
+    )
+      return;
     await deleteFolder(folderId);
     setFolderDetailsById((prev) => {
       const cp = { ...prev };
@@ -322,7 +502,9 @@ export default function HistoryPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch {}
+    } catch (err) {
+      throw new Error("");
+    }
   };
 
   const handleRefreshFolder = async (folderId) => {
@@ -350,8 +532,16 @@ export default function HistoryPage() {
             >
               Refresh folders
             </button>
-            {foldersLoading ? <span className="text-xs text-gray-500 dark:text-gray-400">Loading…</span> : null}
-            {foldersError ? <span className="text-xs text-red-600">{String(foldersError)}</span> : null}
+            {foldersLoading ? (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Loading…
+              </span>
+            ) : null}
+            {foldersError ? (
+              <span className="text-xs text-red-600">
+                {String(foldersError)}
+              </span>
+            ) : null}
           </div>
         }
       />
@@ -372,7 +562,9 @@ export default function HistoryPage() {
               <ModuleCard
                 key={String(f.id)}
                 title={`${f.name || "Untitled Folder"} (ID: ${f.id})`}
-                subtitle={f.created_at ? `Created: ${tsFmt(f.created_at)}` : undefined}
+                subtitle={
+                  f.created_at ? `Created: ${tsFmt(f.created_at)}` : undefined
+                }
                 actions={
                   <div className="flex items-center gap-2">
                     <button
@@ -402,7 +594,9 @@ export default function HistoryPage() {
                 {isOpen ? (
                   <div className="mt-3">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xs text-gray-600 dark:text-gray-400">Folder #{f.id}</span>
+                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                        Folder #{f.id}
+                      </span>
                       <button
                         type="button"
                         onClick={() => handleRefreshFolder(f.id)}
@@ -411,10 +605,14 @@ export default function HistoryPage() {
                         Refresh
                       </button>
                       {detailLoading ? (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">Loading…</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          Loading…
+                        </span>
                       ) : null}
                       {detailError ? (
-                        <span className="text-xs text-red-600">{String(detailError)}</span>
+                        <span className="text-xs text-red-600">
+                          {String(detailError)}
+                        </span>
                       ) : null}
                     </div>
 
@@ -425,21 +623,42 @@ export default function HistoryPage() {
                     ) : (
                       <div className="space-y-4">
                         {calcs.map((row) => {
-                          const title = row?.title || row?.formula_name || "Calculation";
-                          const stamp = row?.created_at || row?.updated_at || row?.ts || "";
-                          const status = row?.status ? String(row.status) : "";
+                          const title =
+                            row?.title ||
+                            row?.formula_name ||
+                            "Calculation";
+                          const stamp =
+                            row?.created_at ||
+                            row?.updated_at ||
+                            row?.ts ||
+                            "";
+                          const status = row?.status
+                            ? String(row.status)
+                            : "";
 
                           const inputs = row?.inputs ?? {};
                           const results = row?.results ?? {};
-                          const life = Array.isArray(results?.lifeSeriesData) ? results.lifeSeriesData : null;
-                          const W_required = Number(results?.W_required || 0);
+                          const life = Array.isArray(results?.lifeSeriesData)
+                            ? results.lifeSeriesData
+                            : null;
+                          const W_required = Number(
+                            results?.W_required || 0
+                          );
 
                           // yMax like in GalvanicResults
-                          const yMax = life && life.length
-                            ? Math.max(...life.map((d) => Number(d.weight) || 0), W_required || 0) * 1.25 || 10
-                            : 10;
+                          const yMax =
+                            life && life.length
+                              ? Math.max(
+                                  ...life.map(
+                                    (d) => Number(d.weight) || 0
+                                  ),
+                                  W_required || 0
+                                ) *
+                                  1.25 || 10
+                              : 10;
 
-                          const resultsNoSeries = stripSeriesFields(results || {});
+                          const resultsNoSeries =
+                            stripSeriesFields(results || {});
 
                           const primary = buildPrimaryChart(results);
 
@@ -453,14 +672,17 @@ export default function HistoryPage() {
                                   {title}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                                  {tsFmt(stamp)}{status ? ` • ${status}` : ""}
+                                  {tsFmt(stamp)}
+                                  {status ? ` • ${status}` : ""}
                                 </div>
                               </div>
 
                               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                                 {/* Inputs */}
                                 <div>
-                                  <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">Inputs</div>
+                                  <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">
+                                    Inputs
+                                  </div>
                                   <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
                                     {JSON.stringify(inputs, null, 2)}
                                   </pre>
@@ -468,35 +690,76 @@ export default function HistoryPage() {
 
                                 {/* Results + Chart */}
                                 <div>
-                                  <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">Results</div>
+                                  <div className="font-semibold mb-1 text-gray-800 dark:text-gray-200">
+                                    Results
+                                  </div>
 
                                   {/* Chart from lifeSeriesData (not shown as numbers) */}
                                   {life && life.length ? (
                                     <div className="mb-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-2 h-64">
-                                      <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={life} margin={{ top: 8, right: 16, left: 40, bottom: 0 }}>
-                                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                      <ResponsiveContainer
+                                        width="100%"
+                                        height="100%"
+                                      >
+                                        <LineChart
+                                          data={life}
+                                          margin={{
+                                            top: 8,
+                                            right: 16,
+                                            left: 40,
+                                            bottom: 0,
+                                          }}
+                                        >
+                                          <CartesianGrid
+                                            strokeDasharray="3 3"
+                                            stroke="#e5e7eb"
+                                          />
                                           <XAxis
                                             dataKey="year"
                                             tick={{ fontSize: 12 }}
-                                            label={{ value: "Years", position: "insideBottomRight", offset: -4 }}
+                                            label={{
+                                              value: "Years",
+                                              position:
+                                                "insideBottomRight",
+                                              offset: -4,
+                                            }}
                                           />
                                           <YAxis
                                             domain={[0, yMax]}
                                             tick={{ fontSize: 12 }}
-                                            tickFormatter={(v) => fmt(v, 2)}
-                                            label={{ value: "kg", angle: -90, position: "insideLeft" }}
+                                            tickFormatter={(v) =>
+                                              fmt(v, 2)
+                                            }
+                                            label={{
+                                              value: "kg",
+                                              angle: -90,
+                                              position: "insideLeft",
+                                            }}
                                           />
                                           <Tooltip
-                                            formatter={(v) => `${fmt(v, 2)} kg`}
-                                            labelFormatter={(l) => `Year ${l}`}
+                                            formatter={(v) =>
+                                              `${fmt(v, 2)} kg`
+                                            }
+                                            labelFormatter={(l) =>
+                                              `Year ${l}`
+                                            }
                                           />
-                                          {Number.isFinite(W_required) && W_required > 0 ? (
+                                          {Number.isFinite(
+                                            W_required
+                                          ) && W_required > 0 ? (
                                             <ReferenceLine
                                               y={W_required}
                                               stroke="#2563eb"
                                               strokeDasharray="4 2"
-                                              label={{ value: `At t: ${fmt(W_required, 2)} kg`, position: "right", fill: "#2563eb", fontSize: 12 }}
+                                              label={{
+                                                value: `At t: ${fmt(
+                                                  W_required,
+                                                  2
+                                                )} kg`,
+                                                position: "right",
+                                                fill: "#2563eb",
+                                                fontSize: 12,
+                                              }}
                                             />
                                           ) : null}
                                         </LineChart>
@@ -506,22 +769,89 @@ export default function HistoryPage() {
 
                                   {primary ? (
                                     <div className="mb-3 rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 p-2 h-64">
-                                      <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={primary.data} margin={{ top: 10, right: 20, left: 16, bottom: 0 }}>
+                                      <ResponsiveContainer
+                                        width="100%"
+                                        height="100%"
+                                      >
+                                        <LineChart
+                                          data={primary.data}
+                                          margin={{
+                                            top: 10,
+                                            right: 20,
+                                            left: 16,
+                                            bottom: 0,
+                                          }}
+                                        >
                                           <CartesianGrid strokeDasharray="3 3" />
-                                          <XAxis dataKey={primary.xKey} tick={{ fontSize: 12 }} label={{ value: primary.xLabel || "", position: "insideBottomRight", offset: -4 }} />
-                                          <YAxis domain={primary.yMax ? [0, primary.yMax] : undefined} tick={{ fontSize: 12 }} label={primary.yLabel ? { value: primary.yLabel, angle: -90, position: "insideLeft" } : undefined} />
+                                          <XAxis
+                                            dataKey={primary.xKey}
+                                            tick={{ fontSize: 12 }}
+                                            label={{
+                                              value:
+                                                primary.xLabel || "",
+                                              position:
+                                                "insideBottomRight",
+                                              offset: -4,
+                                            }}
+                                          />
+                                          <YAxis
+                                            domain={
+                                              primary.yMax
+                                                ? [0, primary.yMax]
+                                                : undefined
+                                            }
+                                            tick={{ fontSize: 12 }}
+                                            label={
+                                              primary.yLabel
+                                                ? {
+                                                    value:
+                                                      primary.yLabel,
+                                                    angle: -90,
+                                                    position:
+                                                      "insideLeft",
+                                                  }
+                                                : undefined
+                                            }
+                                          />
                                           <Tooltip />
-                                          {primary.kind === "generic" ? <Legend /> : null}
+                                          {primary.kind ===
+                                          "generic" ? (
+                                            <Legend />
+                                          ) : null}
                                           {primary.kind === "generic"
-                                            ? (primary.yKeys || []).map((k, i) => (
-                                                <Line key={k || `S${i+1}`} type="monotone" dataKey={k || `S${i+1}`} dot={false} strokeWidth={2} />
-                                              ))
+                                            ? (primary.yKeys || []).map(
+                                                (k, i) => (
+                                                  <Line
+                                                    key={
+                                                      k ||
+                                                      `S${i + 1}`
+                                                    }
+                                                    type="monotone"
+                                                    dataKey={
+                                                      k ||
+                                                      `S${i + 1}`
+                                                    }
+                                                    dot={false}
+                                                    strokeWidth={2}
+                                                  />
+                                                )
+                                              )
                                             : (
-                                              <Line type="monotone" dataKey={primary.yKey} stroke="#2563eb" strokeWidth={2} dot={false} />
-                                            )}
+                                              <Line
+                                                type="monotone"
+                                                dataKey={primary.yKey}
+                                                stroke="#2563eb"
+                                                strokeWidth={2}
+                                                dot={false}
+                                              />
+                                              )}
                                           {primary.refX ? (
-                                            <ReferenceLine x={primary.refX} stroke="#ef4444" strokeDasharray="4 4" label={`t=${primary.refX}y`} />
+                                            <ReferenceLine
+                                              x={primary.refX}
+                                              stroke="#ef4444"
+                                              strokeDasharray="4 4"
+                                              label={`t=${primary.refX}y`}
+                                            />
                                           ) : null}
                                         </LineChart>
                                       </ResponsiveContainer>
@@ -530,7 +860,11 @@ export default function HistoryPage() {
 
                                   {/* Results JSON (without lifeSeriesData) */}
                                   <pre className="whitespace-pre-wrap overflow-auto bg-gray-50 dark:bg-gray-800/60 p-3 rounded-lg border border-gray-100 dark:border-gray-800 w-[1400px] max-w-full">
-                                    {JSON.stringify(resultsNoSeries ?? {}, null, 2)}
+                                    {JSON.stringify(
+                                      resultsNoSeries ?? {},
+                                      null,
+                                      2
+                                    )}
                                   </pre>
                                 </div>
                               </div>

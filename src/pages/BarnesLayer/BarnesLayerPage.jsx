@@ -12,22 +12,11 @@ import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 export default class BarnesLayerPage extends React.Component {
   constructor(props) {
     super(props);
-
-    let parsed = null;
-    if (typeof window !== "undefined") {
-      try {
-        const saved = window.localStorage.getItem("barnes_layer_calc");
-        parsed = saved ? JSON.parse(saved) : null;
-      } catch {
-        /* ignore */
-      }
-    }
-
     this.state = {
       submitting: false,
-      results: parsed?.results || null,
+      results: null,
       error: null,
-      savedInputs: parsed?.inputs || null,
+      savedInputs: null,
     };
 
     // right column capture for PDF/screenshot in HeaderSaveBar
@@ -66,25 +55,28 @@ export default class BarnesLayerPage extends React.Component {
       method,
     };
 
-    const results = computeBarnesSingleLayer(inputs);
+    const baseResults = computeBarnesSingleLayer(inputs);
 
-    try {
-      window.localStorage.setItem(
-        "barnes_layer_calc",
-        JSON.stringify({ inputs: raw, results })
-      );
-    } catch {
-      /* ignore */
-    }
+    // Build a simple chart series for History: apparent resistivity vs spacing
+    const table = Array.isArray(baseResults?.table) ? baseResults.table : [];
+    const labels = table.map((row) => Number(row.spacing_m || 0));
+    const data = table.map((row) => Number(row.rho_app_ohm_m || 0));
+    const chartSeries = {
+      labels,
+      series: [
+        {
+          name: "Apparent Resistivity (Ω·m)",
+          data,
+        },
+      ],
+    };
+
+    const results = { ...baseResults, chartSeries };
+
     this.setState({ results, savedInputs: raw, error: null });
   };
 
   onResetAll = () => {
-    try {
-      window.localStorage.removeItem("barnes_layer_calc");
-    } catch {
-      /* ignore */
-    }
     this.setState({ results: null, error: null, savedInputs: null });
   };
 

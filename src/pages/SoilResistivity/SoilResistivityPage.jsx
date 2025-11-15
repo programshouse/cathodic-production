@@ -44,23 +44,12 @@ Notes:
 export default class SoilResistivityPage extends React.Component {
   constructor(props) {
     super(props);
-
-    let parsed = null;
-    if (typeof window !== "undefined") {
-      try {
-        const saved = window.localStorage.getItem("soil_resistivity_calc");
-        parsed = saved ? JSON.parse(saved) : null;
-      } catch {
-        /* ignore */
-      }
-    }
-
     this.state = {
       submitting: false,
-      results: parsed?.results || null,
+      results: null,
       error: null,
       activeTab: "results",
-      savedInputs: parsed?.inputs || null,
+      savedInputs: null,
     };
 
     // right column ref for HeaderSaveBar screenshot/PDF capture
@@ -116,12 +105,6 @@ export default class SoilResistivityPage extends React.Component {
         return;
       }
 
-      try {
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem("soil_resistivity_calc", JSON.stringify({ inputs, results }));
-        }
-      } catch { /* ignore quota */ }
-
       this.setState({
         results,
         savedInputs: inputs,
@@ -133,11 +116,6 @@ export default class SoilResistivityPage extends React.Component {
   };
 
   onResetAll = () => {
-    try {
-      if (typeof window !== "undefined") {
-        window.localStorage.removeItem("soil_resistivity_calc");
-      }
-    } catch { /* ignore */ }
     this.setState({
       results: null,
       error: null,

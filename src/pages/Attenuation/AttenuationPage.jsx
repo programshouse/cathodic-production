@@ -20,18 +20,12 @@ import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 export default class AttenuationPage extends React.Component {
   constructor(props) {
     super(props);
-    const saved =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("attenuation_calc")
-        : null;
-    const parsed = saved ? JSON.parse(saved) : null;
-
     this.state = {
       submitting: false,
-      results: parsed?.results || null,
+      results: null,
       error: null,
       activeTab: "results",
-      savedInputs: parsed?.inputs || null,
+      savedInputs: null,
     };
 
     // Right column ref for screenshot in HeaderSaveBar
@@ -104,16 +98,11 @@ export default class AttenuationPage extends React.Component {
         };
 
         const calc = computeAttenuation(inputs);
-        const results = { ...calc, inputs };
-
-        try {
-          window.localStorage.setItem(
-            "attenuation_calc",
-            JSON.stringify({ inputs, results })
-          );
-        } catch {
-          /* ignore */
-        }
+        // Provide a distanceSeries for History charts: x_m -> d, V -> value
+        const distanceSeries = Array.isArray(calc?.data)
+          ? calc.data.map((pt) => ({ d: Number(pt.x_m || 0), value: Number(pt.V || 0) }))
+          : [];
+        const results = { ...calc, inputs, distanceSeries };
 
         this.setState({ results, savedInputs: inputs, activeTab: "results" });
       } catch (err) {
@@ -127,11 +116,6 @@ export default class AttenuationPage extends React.Component {
   };
 
   onResetAll = () => {
-    try {
-      window.localStorage.removeItem("attenuation_calc");
-    } catch {
-      /* ignore */
-    }
     this.setState({
       results: null,
       error: null,

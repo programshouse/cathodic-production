@@ -10,20 +10,12 @@ import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 export default class CircuitResistancePage extends React.Component {
   constructor(props) {
     super(props);
-    let parsed = null;
-    if (typeof window !== "undefined") {
-      try {
-        const saved = window.localStorage.getItem("circuit_resistance_calc");
-        parsed = saved ? JSON.parse(saved) : null;
-      } catch { /* ignore */ }
-    }
-
     this.state = {
       submitting: false,
-      results: parsed?.results || null,
+      results: null,
       error: null,
       activeTab: "results",
-      savedInputs: parsed?.inputs || null,
+      savedInputs: null,
     };
 
     // right column capture for PDF/screenshot in HeaderSaveBar
@@ -69,16 +61,21 @@ export default class CircuitResistancePage extends React.Component {
         }
 
         const calc = computeCircuit(inputs);
-        const results = { ...calc, inputs };
-
-        try {
-          if (typeof window !== "undefined") {
-            window.localStorage.setItem(
-              "circuit_resistance_calc",
-              JSON.stringify({ inputs, results })
-            );
-          }
-        } catch { /* ignore */ }
+        const R_cable = Number(calc?.R_cable || 0);
+        const R_anode = Number(calc?.R_anode || 0);
+        const R_pipeline = Number(calc?.R_pipeline || 0);
+        const R_total = Number(calc?.R_total || 0);
+        // Simple chart series for History: component resistances and total
+        const chartSeries = {
+          labels: ["R_cable", "R_anode", "R_pipeline", "R_total"],
+          series: [
+            {
+              name: "Resistance (Ω)",
+              data: [R_cable, R_anode, R_pipeline, R_total],
+            },
+          ],
+        };
+        const results = { ...calc, inputs, chartSeries };
 
         this.setState({
           results,
@@ -96,7 +93,6 @@ export default class CircuitResistancePage extends React.Component {
   };
 
   onResetAll = () => {
-    try { if (typeof window !== "undefined") window.localStorage.removeItem("circuit_resistance_calc"); } catch {}
     this.setState({
       results: null,
       error: null,

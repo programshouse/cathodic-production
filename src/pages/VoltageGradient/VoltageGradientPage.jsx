@@ -20,18 +20,12 @@ import {
 export default class VoltageGradientPage extends React.Component {
   constructor(props) {
     super(props);
-    const saved =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("voltage_gradient_calc")
-        : null;
-    const parsed = saved ? JSON.parse(saved) : null;
-
     this.state = {
       submitting: false,
-      results: parsed?.results || null,
+      results: null,
       error: null,
       activeTab: "results",
-      savedInputs: parsed?.inputs || null,
+      savedInputs: null,
     };
 
     // Right pane ref for HeaderSaveBar screenshot/PDF capture
@@ -112,7 +106,7 @@ export default class VoltageGradientPage extends React.Component {
             anodeDepthUnit,
           };
 
-          const results = computeVoltageGradient({
+          const calc = computeVoltageGradient({
             sourceType,
             I: I_SI,
             rho: rho_SI,
@@ -120,13 +114,11 @@ export default class VoltageGradientPage extends React.Component {
             pipelineDepth: pipeDepth_SI,
             anodeDepth: anodeDepth_SI,
           });
-
-          try {
-            window.localStorage.setItem(
-              "voltage_gradient_calc",
-              JSON.stringify({ inputs, results })
-            );
-          } catch {}
+          // distanceSeries for History charts: x_m -> d, Vm -> value
+          const distanceSeries = Array.isArray(calc?.data)
+            ? calc.data.map((pt) => ({ d: Number(pt.x_m || 0), value: Number(pt.Vm || 0) }))
+            : [];
+          const results = { ...calc, distanceSeries };
 
           this.setState({
             submitting: false,
@@ -194,7 +186,7 @@ export default class VoltageGradientPage extends React.Component {
     const pipeDepth_SI = lengthToM(pipelineDepth, pipelineDepthUnit);
     const anodeDepth_SI = lengthToM(anodeDepth, anodeDepthUnit);
 
-    const results = computeVoltageGradient({
+    const calc = computeVoltageGradient({
       sourceType,
       I: I_SI,
       rho: rho_SI,
@@ -202,13 +194,10 @@ export default class VoltageGradientPage extends React.Component {
       pipelineDepth: pipeDepth_SI,
       anodeDepth: anodeDepth_SI,
     });
-
-    try {
-      window.localStorage.setItem(
-        "voltage_gradient_calc",
-        JSON.stringify({ inputs: formInputs, results })
-      );
-    } catch {}
+    const distanceSeries = Array.isArray(calc?.data)
+      ? calc.data.map((pt) => ({ d: Number(pt.x_m || 0), value: Number(pt.Vm || 0) }))
+      : [];
+    const results = { ...calc, distanceSeries };
 
     this.setState({
       results,
@@ -219,7 +208,6 @@ export default class VoltageGradientPage extends React.Component {
   };
 
   onResetAll = () => {
-    try { window.localStorage.removeItem("voltage_gradient_calc"); } catch {}
     this.setState({
       results: null,
       error: null,

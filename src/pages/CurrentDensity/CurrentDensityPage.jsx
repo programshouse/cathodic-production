@@ -71,6 +71,16 @@ export default class CurrentDensityPage extends React.Component {
         const results = {
           range25: range,
           jdFinal: jdCorr,
+          // Provide a generic series for History charts (min, max, corrected)
+          chartSeries: {
+            labels: ["min", "max", "jd_final"],
+            series: [
+              {
+                name: "Jd (mA/m²)",
+                data: [Number(range[0] || 0), Number(range[1] || 0), Number(jdCorr || 0)],
+              },
+            ],
+          },
         };
         const inputs = {
           environment,
@@ -79,16 +89,6 @@ export default class CurrentDensityPage extends React.Component {
           temperature,
           moisture,
         };
-
-        // persist
-        try {
-          window.localStorage.setItem(
-            "current_density_calc",
-            JSON.stringify({ inputs, results })
-          );
-        } catch {
-          /* ignore */
-        }
 
         this.setState({
           results,
@@ -107,11 +107,6 @@ export default class CurrentDensityPage extends React.Component {
   setError = (msg) => this.setState({ error: msg });
 
   onResetAll = () => {
-    try {
-      window.localStorage.removeItem("current_density_calc");
-    } catch {
-      /* ignore */
-    }
     this.setState({
       results: null,
       error: null,

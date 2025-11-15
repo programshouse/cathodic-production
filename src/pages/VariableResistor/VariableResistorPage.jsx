@@ -75,7 +75,27 @@ export default class VariableResistorPage extends React.Component {
       safety_factor: Number(safety_factor || 1),
     });
 
-    this.setState({ results, savedInputs: inputs, error: null, activeTab: "results" });
+    // Provide a small generic series for History charts
+    const V_required = Number(results.V_required || 0);
+    const P_required = Number(results.P_required || 0);
+    const I_rectifier = Number(results.I_rectifier || 0);
+    const V_rectifier = Number(results.V_rectifier || 0);
+    const chartSeries = {
+      labels: ["V_required", "P_required", "I_rectifier", "V_rectifier"],
+      series: [
+        {
+          name: "Value",
+          data: [V_required, P_required, I_rectifier, V_rectifier],
+        },
+      ],
+    };
+
+    this.setState({
+      results: { ...results, chartSeries },
+      savedInputs: inputs,
+      error: null,
+      activeTab: "results",
+    });
   };
 
   onResetAll = () => {

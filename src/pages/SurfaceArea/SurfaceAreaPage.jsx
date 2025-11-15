@@ -190,7 +190,16 @@ export default class SurfaceAreaPage extends React.Component {
         if (structureType === 'pipeline') {
           const length_m = toMeters(Number(submittedInputs.length), units.length);
           const area_m2 = pipelineSurfaceArea({ diameter_m, length_m });
-          this.setState({ results: { area_m2 } });
+          const chartSeries = {
+            labels: ['Area'],
+            series: [
+              {
+                name: 'Area (m²)',
+                data: [Number(area_m2 || 0)],
+              },
+            ],
+          };
+          this.setState({ results: { area_m2, chartSeries } });
         } else if (structureType === 'tank-internal') {
           const height_m = toMeters(Number(submittedInputs.height), units.height);
           const r = internalTankSurfaceArea({
@@ -198,10 +207,33 @@ export default class SurfaceAreaPage extends React.Component {
             height_m,
             includeBottom: Boolean(submittedInputs.includeBottom),
           });
-          this.setState({ results: r });
+          const Ashell = Number(r.Ashell || 0);
+          const Abottom = Number(r.Abottom || 0);
+          const Atotal = Number(r.Atotal || 0);
+          const labels = ['Ashell', 'Abottom', 'Atotal'];
+          const data = [Ashell, Abottom, Atotal];
+          const chartSeries = {
+            labels,
+            series: [
+              {
+                name: 'Area (m²)',
+                data,
+              },
+            ],
+          };
+          this.setState({ results: { ...r, chartSeries } });
         } else if (structureType === 'tank-external-bottom') {
           const area_m2 = externalTankBottomAreaFlat({ diameter_m });
-          this.setState({ results: { area_m2 } });
+          const chartSeries = {
+            labels: ['Area'],
+            series: [
+              {
+                name: 'Area (m²)',
+                data: [Number(area_m2 || 0)],
+              },
+            ],
+          };
+          this.setState({ results: { area_m2, chartSeries } });
         } else {
           throw new Error('Unsupported structure type.');
         }

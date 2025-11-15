@@ -1,30 +1,23 @@
 // src/lib/historyStore.js
-const KEY_PROJECTS = "cp_projects_v1";
-const KEY_ACTIVE = "cp_projects_active_v1";
-
-/** Utils */
-const safeParse = (s, fallback) => {
-  try { return JSON.parse(s); } catch { return fallback; }
-};
-const save = (k, v) => {
-  try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
-};
+// Lightweight in-memory history helper used by some legacy UI pieces.
+// It no longer persists anything to localStorage – all data lives only
+// for the duration of the current page session.
 
 const uid = () =>
   Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
-/** Bootstrap projects list + default project */
-function ensureProjects() {
-  if (typeof window === "undefined") return [];
-  const list = safeParse(localStorage.getItem(KEY_PROJECTS), null);
-  if (Array.isArray(list) && list.length) return list;
+// Single-process in-memory store. This avoids any browser storage usage
+// while keeping the same public API as before.
+let projects = [{ id: "default", name: "Default Project", items: [] }];
+let activeProjectId = "default";
 
-  const def = [{ id: uid(), name: "Default Project", items: [] }];
-  save(KEY_PROJECTS, def);
-  if (!localStorage.getItem(KEY_ACTIVE)) {
-    localStorage.setItem(KEY_ACTIVE, def[0].id);
+/** Ensure projects array is always a non-empty list. */
+function ensureProjects() {
+  if (!Array.isArray(projects) || projects.length === 0) {
+    projects = [{ id: "default", name: "Default Project", items: [] }];
+    activeProjectId = projects[0].id;
   }
-  return def;
+  return projects;
 }
 
 export function getProjects() {
@@ -32,54 +25,47 @@ export function getProjects() {
 }
 
 export function getActiveProjectId() {
-  if (typeof window === "undefined") return "";
-  const projects = ensureProjects();
-  const stored = localStorage.getItem(KEY_ACTIVE);
-  if (stored && projects.some(p => p.id === stored)) return stored;
-  // fallback to first project
-  const first = projects[0]?.id || "";
-  if (first) localStorage.setItem(KEY_ACTIVE, first);
-  return first;
+  const list = ensureProjects();
+  if (activeProjectId && list.some((p) => p.id === activeProjectId)) {
+    return activeProjectId;
+  }
+  const first = list[0]?.id || "";
+  activeProjectId = first || "";
+  return activeProjectId;
 }
 
 export function setActiveProjectId(id) {
-  if (typeof window === "undefined") return;
-  const projects = ensureProjects();
-  if (!projects.some(p => p.id === id)) return;
-  localStorage.setItem(KEY_ACTIVE, id);
+  const list = ensureProjects();
+  if (!list.some((p) => p.id === id)) return;
+  activeProjectId = id;
 }
 
 export function getProject(id) {
-  const projects = ensureProjects();
-  return projects.find(p => p.id === id) || null;
+  const list = ensureProjects();
+  return list.find((p) => p.id === id) || null;
 }
 
 export function createProject(name) {
-  const projects = ensureProjects();
+  const list = ensureProjects();
   const p = { id: uid(), name: name || "Untitled", items: [] };
-  projects.push(p);
-  save(KEY_PROJECTS, projects);
-  setActiveProjectId(p.id);
+  list.push(p);
+  activeProjectId = p.id;
   return p;
 }
 
 export function renameProject(id, name) {
-  const projects = ensureProjects();
-  const idx = projects.findIndex(p => p.id === id);
+  const list = ensureProjects();
+  const idx = list.findIndex((p) => p.id === id);
   if (idx < 0) return;
-  projects[idx] = { ...projects[idx], name: name || projects[idx].name };
-  save(KEY_PROJECTS, projects);
+  list[idx] = { ...list[idx], name: name || list[idx].name };
 }
 
 export function deleteProject(id) {
-  const projects = ensureProjects().filter(p => p.id !== id);
-  save(KEY_PROJECTS, projects);
-  // reset active if needed
-  const active = getActiveProjectId();
-  if (active === id) {
+  const list = ensureProjects();
+  projects = list.filter((p) => p.id !== id);
+  if (activeProjectId === id) {
     const next = projects[0]?.id || "";
-    if (next) setActiveProjectId(next);
-    else localStorage.removeItem(KEY_ACTIVE);
+    activeProjectId = next || "";
   }
 }
 
@@ -88,10 +74,9 @@ export function deleteProject(id) {
  * item: { moduleKey, label, inputs, results, imageDataUrl?, ts? }
  */
 export function addItem(item) {
-  if (typeof window === "undefined") return null;
-  const projects = ensureProjects();
+  const list = ensureProjects();
   const activeId = getActiveProjectId();
-  const idx = projects.findIndex(p => p.id === activeId);
+  const idx = list.findIndex((p) => p.id === activeId);
   if (idx < 0) return null;
 
   const payload = {
@@ -103,53 +88,14 @@ export function addItem(item) {
     imageDataUrl: item.imageDataUrl ?? null,
     ts: item.ts || Date.now(),
   };
-  projects[idx].items.unshift(payload); // newest first
-  save(KEY_PROJECTS, projects);
+
+  list[idx].items.unshift(payload); // newest first
   return payload;
 }
 
 /** Optional migration: pull last single-saves into Default project */
 export function migrateLegacyIntoDefault() {
-  if (typeof window === "undefined") return;
-  const legacyKeys = [
-    "voltage_gradient_calc",
-    "attenuation_calc",
-    "interference_calc",
-    "soil_resistivity_calc",
-    "barnes_layer_calc",
-    "coating_factors_calc",
-    "groundbed_resistance_calc",
-    "galvanic_calc",
-    "impressed_current_calc",
-    "variable_resistor_calc",
-    "circuit_resistance_calc",
-    "surface_area_calc",
-  ];
-  const projects = ensureProjects();
-  const defId = getActiveProjectId();
-  const defIdx = projects.findIndex(p => p.id === defId) ?? 0;
-
-  let changed = false;
-  legacyKeys.forEach(k => {
-    try {
-      const raw = localStorage.getItem(k);
-      if (!raw) return;
-      const parsed = safeParse(raw, null);
-      if (!parsed || (!parsed.inputs && !parsed.results)) return;
-
-      projects[defIdx].items.unshift({
-        id: uid(),
-        moduleKey: k,
-        label: k,
-        inputs: parsed.inputs ?? null,
-        results: parsed.results ?? null,
-        imageDataUrl: null,
-        ts: parsed.timestamp || Date.now(),
-      });
-      localStorage.removeItem(k);
-      changed = true;
-    } catch {}
-  });
-
-  if (changed) save(KEY_PROJECTS, projects);
+  // No-op: legacy migration from localStorage has been removed because
+  // we no longer persist any calculation data in browser storage.
+  return;
 }

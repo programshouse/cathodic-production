@@ -13,18 +13,11 @@ import { computeRectifierSizing, toAmps } from "./utils";
 export default class ResistorSizingPage extends React.Component {
   constructor(props) {
     super(props);
-    let parsed = null;
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = window.localStorage.getItem('rectifier_sizing_calc');
-        parsed = saved ? JSON.parse(saved) : null;
-      } catch { /* ignore malformed storage */ }
-    }
     this.state = {
       submitting: false,
-      results: parsed?.results || null,
+      results: null,
       error: null,
-      savedInputs: parsed?.inputs || null,
+      savedInputs: null,
       activeTab: "results",
     };
     this.captureRef = React.createRef();
@@ -64,12 +57,43 @@ export default class ResistorSizingPage extends React.Component {
       safety_factor: Number(safety_factor || 1),
     });
 
-    try { window.localStorage.setItem('rectifier_sizing_calc', JSON.stringify({ inputs, results })); } catch { /* ignore */ }
-    this.setState({ results, savedInputs: inputs, error: null, activeTab: "results" });
+    // Build a chart series for History: key rectifier ratings
+    const V_required = Number(results.V_required || 0);
+    const V_driving = Number(results.V_driving || 0);
+    const I_rectifier = Number(results.I_rectifier || 0);
+    const V_rectifier = Number(results.V_rectifier || 0);
+    const P_rectifier = Number(results.P_rectifier || 0);
+    const chartSeries = {
+      labels: [
+        "V_driving",
+        "V_required",
+        "I_rectifier",
+        "V_rectifier",
+        "P_rectifier",
+      ],
+      series: [
+        {
+          name: "Value",
+          data: [
+            V_driving,
+            V_required,
+            I_rectifier,
+            V_rectifier,
+            P_rectifier,
+          ],
+        },
+      ],
+    };
+
+    this.setState({
+      results: { ...results, chartSeries },
+      savedInputs: inputs,
+      error: null,
+      activeTab: "results",
+    });
   };
 
   onResetAll = () => {
-    try { window.localStorage.removeItem('rectifier_sizing_calc'); } catch { /* ignore */ }
     this.setState({ results: null, error: null, savedInputs: null, activeTab: "results" });
   };
 

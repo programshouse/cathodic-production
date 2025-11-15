@@ -34,7 +34,7 @@ export default function SaveRunButton({
       let chartPng = null;
       try { chartPng = await captureNodeToPng(chartRef?.current); } catch { /* ignore */ }
 
-      const item = addItem(projectId, {
+      const item = addItem({
         moduleKey,
         label,
         inputs: inputs ?? null,

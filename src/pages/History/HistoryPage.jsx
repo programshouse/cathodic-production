@@ -561,7 +561,7 @@ export default function HistoryPage() {
             return (
               <ModuleCard
                 key={String(f.id)}
-                title={`${f.name || "Untitled Folder"} (ID: ${f.id})`}
+                title={`${f.name || "Untitled Folder"} `}
                 subtitle={
                   f.created_at ? `Created: ${tsFmt(f.created_at)}` : undefined
                 }

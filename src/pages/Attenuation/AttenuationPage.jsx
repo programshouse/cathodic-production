@@ -7,14 +7,7 @@ import ResetPill from "../../components/ui/ResetPill";
 import AttenuationForm from "./AttenuationForm";
 import AttenuationResults from "./AttenuationResults";
 import AttenuationReference from "./AttenuationReference";
-import {
-  computeAttenuation,
-  toMeters,
-  toPerMeter,
-  toVolts,
-  Rs_from_geometry,
-  RL_from_coating,
-} from "./utils";
+import { computeAttenuation } from "./utils";
 import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 export default class AttenuationPage extends React.Component {
@@ -34,80 +27,45 @@ export default class AttenuationPage extends React.Component {
 
   onSubmit = (e) => {
     e.preventDefault();
+
     this.setState({ submitting: true, error: null }, () => {
       try {
         const fd = new FormData(e.target);
-        const L_m = toMeters(fd.get("L_value"), fd.get("L_unit"));
-        const V0_V = toVolts(fd.get("V0_value"), fd.get("V0_unit"));
-        const mode = fd.get("mode") || "direct";
-        const points = Number(fd.get("points") || 50);
+        const rawInputs = Object.fromEntries(fd.entries());
 
-        let Rs_per_m, RL_per_m;
-        if (mode === "derived") {
-          const OD_m = toMeters(fd.get("OD_value"), fd.get("OD_unit"));
-          const t_m = toMeters(fd.get("t_value"), fd.get("t_unit"));
-          const rho_steel_ohm_m = Number(fd.get("rho_steel_ohm_m") || 0);
-          const Rc_per_area_ohm_m2 = Number(fd.get("Rc_per_area_ohm_m2") || 0);
-          Rs_per_m = Rs_from_geometry({ rho_steel_ohm_m, OD_m, t_m });
-          RL_per_m = RL_from_coating({ Rc_per_area_ohm_m2, OD_m });
-          if (
-            !(OD_m > 0) ||
-            !(t_m > 0) ||
-            !(rho_steel_ohm_m > 0) ||
-            !(Rc_per_area_ohm_m2 > 0)
-          ) {
-            this.setState({
-              submitting: false,
-              error:
-                "Please fill valid geometry and coating values for derived mode.",
-            });
-            return;
-          }
-        } else {
-          Rs_per_m = toPerMeter(fd.get("Rs_value"), fd.get("Rs_unit"));
-          RL_per_m = toPerMeter(fd.get("RL_value"), fd.get("RL_unit"));
-        }
+        const calc = computeAttenuation(rawInputs);
 
-        // rudimentary validation
-        if (!(L_m > 0) || !(points >= 2) || !(RL_per_m > 0)) {
-          this.setState({
-            submitting: false,
-            error:
-              "Please fill all required fields with valid positive numbers.",
-          });
-          return;
-        }
+        const distanceSeries = Array.isArray(calc?.data)
+          ? calc.data.map((pt) => ({
+              d: Number(pt.x_m || 0),
+              value: Number(pt.V || 0),
+            }))
+          : [];
 
-        const inputs = {
+        // Enrich inputs for history naming (L, Rs, RL)
+        const L_m = calc.Lx_m ?? 0;
+        const Rs_per_m = calc.RS_ohm_per_m ?? 0;
+        const RL_per_m =
+          L_m > 0 ? (calc.RL_ohm ?? 0) / L_m : 0;
+
+        const enrichedInputs = {
+          ...rawInputs,
           L_m,
-          V0_V,
           Rs_per_m,
           RL_per_m,
-          points,
-          mode,
-          L_unit: fd.get("L_unit"),
-          V0_unit: fd.get("V0_unit"),
-          Rs_unit: fd.get("Rs_unit"),
-          RL_unit: fd.get("RL_unit"),
-          OD_value: fd.get("OD_value"),
-          OD_unit: fd.get("OD_unit"),
-          t_value: fd.get("t_value"),
-          t_unit: fd.get("t_unit"),
-          rho_steel_ohm_m: fd.get("rho_steel_ohm_m"),
-          Rc_per_area_ohm_m2: fd.get("Rc_per_area_ohm_m2"),
         };
 
-        const calc = computeAttenuation(inputs);
-        // Provide a distanceSeries for History charts: x_m -> d, V -> value
-        const distanceSeries = Array.isArray(calc?.data)
-          ? calc.data.map((pt) => ({ d: Number(pt.x_m || 0), value: Number(pt.V || 0) }))
-          : [];
-        const results = { ...calc, inputs, distanceSeries };
+        const results = { ...calc, inputs: enrichedInputs, distanceSeries };
 
-        this.setState({ results, savedInputs: inputs, activeTab: "results" });
+        this.setState({
+          results,
+          savedInputs: enrichedInputs,
+          activeTab: "results",
+        });
       } catch (err) {
         this.setState({
-          error: err && err.message ? err.message : "Calculation failed",
+          error:
+            err && err.message ? err.message : "Calculation failed",
         });
       } finally {
         this.setState({ submitting: false });
@@ -129,21 +87,22 @@ export default class AttenuationPage extends React.Component {
   InfoCard = () => (
     <ModuleCard
       title="Attenuation & Pipeline Potential Profile"
-      subtitle="Solves V(x) along pipeline using Rs, RL, length L, and source V₀ (direct or derived)."
+      subtitle="Solves E(x) along the pipeline using AX, A₁, ATOT, IREQ, RS, RL and α from your design inputs."
       actions={<ResetPill onClick={this.onResetAll} />}
     >
       <div className="text-sm md:text-base text-gray-700 dark:text-gray-300">
         <p>
-          Use <strong>direct</strong> mode to provide Rs and RL directly, or{" "}
-          <strong>derived</strong> mode to compute them from geometry and
-          coating parameters.
+          Enter the geometric, electrical and coating parameters from the
+          design sheet. The calculator reproduces the Excel calculations and
+          generates the potential attenuation profile along the pipeline.
         </p>
       </div>
     </ModuleCard>
   );
 
   render() {
-    const { submitting, results, error, activeTab, savedInputs } = this.state;
+    const { submitting, results, error, activeTab, savedInputs } =
+      this.state;
 
     const headerActions = (
       <HeaderSaveBar
@@ -152,14 +111,14 @@ export default class AttenuationPage extends React.Component {
         inputs={savedInputs}
         results={results}
         captureRef={this.captureRef}
-        // Explicit name used by server history (optional override)
         formulaName="Attenuation & Pipeline Potential profile"
-        // Build a good record "name" in server history
         buildName={({ inputs, project }) => {
           const L = inputs?.L_m ? `${inputs.L_m} m` : "—";
           const Rs = inputs?.Rs_per_m ? `${inputs.Rs_per_m} Ω/m` : "—";
           const RL = inputs?.RL_per_m ? `${inputs.RL_per_m} Ω/m` : "—";
-          return `${project?.name || "Default"} • L=${L} • Rs=${Rs} • RL=${RL}`;
+          return `${
+            project?.name || "Default"
+          } • L=${L} • Rs=${Rs} • RL=${RL}`;
         }}
       />
     );
@@ -183,7 +142,6 @@ export default class AttenuationPage extends React.Component {
           </div>
         }
         right={
-          // Attach ref so Save can capture a screenshot of the results area
           <div className="space-y-4" ref={this.captureRef}>
             <this.InfoCard />
             <Tabs
@@ -194,7 +152,9 @@ export default class AttenuationPage extends React.Component {
               activeKey={activeTab}
               onChange={this.setTab}
             />
-            {activeTab === "results" && <AttenuationResults results={results} />}
+            {activeTab === "results" && (
+              <AttenuationResults results={results} />
+            )}
             {activeTab === "reference" && <AttenuationReference />}
           </div>
         }

@@ -6,7 +6,7 @@ import ResetPill from "../../components/ui/ResetPill";
 
 import BarnesLayerForm from "./BarnesLayerForm";
 import BarnesLayerResults from "./BarnesLayerResults";
-import { UNIT, toOhmMeter, computeBarnesSingleLayer } from "./utils";
+import { computeBarnesLayers } from "./utils";
 import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 export default class BarnesLayerPage extends React.Component {
@@ -24,56 +24,25 @@ export default class BarnesLayerPage extends React.Component {
   }
 
   onSubmit = (raw) => {
-    const {
-      rho_top_value,
-      rho_top_unit,
-      t_top_m,
-      rho_bottom_value,
-      rho_bottom_unit,
-      spacing_m,
-      measured_R_ohm,
-      method,
-    } = raw || {};
+    const { a1, a2, a3, R1, R2, R3 } = raw || {};
 
-    if (
-      !(Number(rho_top_value) > 0) ||
-      !(Number(rho_bottom_value) > 0) ||
-      !(Number(t_top_m) >= 0) ||
-      !(Number(spacing_m) > 0) ||
-      !(Number(measured_R_ohm) > 0)
-    ) {
-      this.setState({ error: "Fill all required fields with valid values." });
+    if (!(Number(a1) > 0) || !(Number(a2) > 0) || !(Number(a3) > 0) || !(Number(R1) > 0) || !(Number(R2) > 0) || !(Number(R3) > 0)) {
+      this.setState({ error: "Please enter positive values for a₁–a₃ and R₁–R₃." });
       return;
     }
 
     const inputs = {
-      rho_top_ohm_m: toOhmMeter(rho_top_value, rho_top_unit),
-      rho_bottom_ohm_m: toOhmMeter(rho_bottom_value, rho_bottom_unit),
-      t_top_m: Number(t_top_m || 0),
-      spacing_m: Number(spacing_m || 0),
-      measured_R_ohm: Number(measured_R_ohm || 0),
-      method,
+      a1: Number(a1),
+      a2: Number(a2),
+      a3: Number(a3),
+      R1: Number(R1),
+      R2: Number(R2),
+      R3: Number(R3),
     };
 
-    const baseResults = computeBarnesSingleLayer(inputs);
+    const results = computeBarnesLayers(inputs);
 
-    // Build a simple chart series for History: apparent resistivity vs spacing
-    const table = Array.isArray(baseResults?.table) ? baseResults.table : [];
-    const labels = table.map((row) => Number(row.spacing_m || 0));
-    const data = table.map((row) => Number(row.rho_app_ohm_m || 0));
-    const chartSeries = {
-      labels,
-      series: [
-        {
-          name: "Apparent Resistivity (Ω·m)",
-          data,
-        },
-      ],
-    };
-
-    const results = { ...baseResults, chartSeries };
-
-    this.setState({ results, savedInputs: raw, error: null });
+    this.setState({ results, savedInputs: inputs, error: null });
   };
 
   onResetAll = () => {
@@ -176,7 +145,7 @@ export default class BarnesLayerPage extends React.Component {
           <div className="space-y-4" ref={this.captureRef}>
             <ModuleCard
               title="Barnes Layer Calculation"
-              subtitle="ρₐ = 2π a R"
+              subtitle="L₁=a₁, L₂=a₂−a₁, L₃=a₃−a₂; ρLᵢ = 2π·a₁·RLᵢ"
               actions={
                 <div className="flex items-center gap-2">
                   <button

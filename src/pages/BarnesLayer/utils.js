@@ -1,7 +1,8 @@
 // Barnes Layer Resistivity utilities
-// Apparent Resistivity (Wenner): rho_a = 2 * pi * a * R
-// Barnes method layers: here we provide single-layer helper plus table/series builders.
+// Wenner apparent resistivity: ρ_a = 2 · π · a · R
+// Barnes 3-layer method as per your document/table.
 
+// Units (kept for compatibility with other modules if needed)
 export const UNIT = {
   OHM_M: "Ω·m",
   OHM_CM: "Ω·cm",
@@ -9,7 +10,8 @@ export const UNIT = {
 
 export function toOhmMeter(val, unit = UNIT.OHM_M) {
   const v = Number(val || 0);
-  return unit === UNIT.OHM_CM ? v / 100 : v; // 1 Ω·cm = 0.01 Ω·m
+  // 1 Ω·cm = 0.01 Ω·m
+  return unit === UNIT.OHM_CM ? v / 100 : v;
 }
 
 export function fromOhmMeter(val, unit = UNIT.OHM_M) {
@@ -17,6 +19,7 @@ export function fromOhmMeter(val, unit = UNIT.OHM_M) {
   return unit === UNIT.OHM_CM ? v * 100 : v;
 }
 
+// Wenner apparent resistivity ρ_a for a single spacing
 export function computeApparentResistivity({ spacing_m, measured_R_ohm }) {
   const a = Number(spacing_m || 0);
   const R = Number(measured_R_ohm || 0);
@@ -24,36 +27,112 @@ export function computeApparentResistivity({ spacing_m, measured_R_ohm }) {
   return rho_a;
 }
 
-// Build table rows around a base spacing by increments
-export function buildSpacingTable({ increments = [0.5, 1, 1.5, 3, 6, 9, 12, 15, 18, 21, 24, 27], measured_R_ohm = 1 }) {
+// (Kept for compatibility; no longer used by the Barnes 3-layer routine)
+export function buildSpacingTable({
+  increments = [0.5, 1, 1.5, 3, 6, 9, 12, 15, 18, 21, 24, 27],
+  measured_R_ohm = 1,
+}) {
   const rows = [];
   increments.forEach((inc) => {
     const a = Number(inc);
-    const rho_a = computeApparentResistivity({ spacing_m: a, measured_R_ohm });
-    // A simple placeholder for layer depth relation (often ~0.75a for Wenner)
-    const depth_m = 0.75 * a;
-    rows.push({ spacing_m: a, R_meas_ohm: Number(measured_R_ohm || 0), rho_app_ohm_m: rho_a, depth_m });
+    const rho_a = computeApparentResistivity({
+      spacing_m: a,
+      measured_R_ohm,
+    });
+    const depth_m = 0.75 * a; // simple Wenner depth approximation
+    rows.push({
+      spacing_m: a,
+      R_meas_ohm: Number(measured_R_ohm || 0),
+      rho_app_ohm_m: rho_a,
+      depth_m,
+    });
   });
   return rows;
 }
 
-export function computeBarnesSingleLayer(inputs) {
-  // Inputs in SI (Ω·m, m)
-  const rho_top = Number(inputs.rho_top_ohm_m || 0);
-  const rho_bottom = Number(inputs.rho_bottom_ohm_m || 0);
-  const t_top = Number(inputs.t_top_m || 0);
-  const a = Number(inputs.spacing_m || 0);
-  const R = Number(inputs.measured_R_ohm || 0);
+// ---- Barnes 3-layer core calculation ----
+//
+// Inputs expected (from form):
+//   a1, a2, a3  : electrode spacings (m)
+//   R1, R2, R3  : measured resistances at each spacing (Ω)
+//
+// Step 2: Layer depths
+//   L1 = a1
+//   L2 = a2 - a1
+//   L3 = a3 - a2
+//
+// Step 3: Layer resistances
+//   RL1 = R_a1
+//   RL2 = (a2 R_a2 - a1 R_a1) / (a2 - a1)
+//   RL3 = (a3 R_a3 - a2 R_a2) / (a3 - a2)
+//
+// Step 4: Layer resistivities
+//   ρL1 = 2 π a1 RL1
+//   ρL2 = 2 π a1 RL2
+//   ρL3 = 2 π a1 RL3
+//
+export function computeBarnesLayers(inputs) {
+  const a1 = Number(inputs.a1 || 0);
+  const a2 = Number(inputs.a2 || 0);
+  const a3 = Number(inputs.a3 || 0);
 
-  const rho_app = computeApparentResistivity({ spacing_m: a, measured_R_ohm: R });
-  const table = buildSpacingTable({ measured_R_ohm: R });
+  const R1 = Number(inputs.R1 || 0);
+  const R2 = Number(inputs.R2 || 0);
+  const R3 = Number(inputs.R3 || 0);
+
+  // Layer depths
+  const L1 = a1;
+  const L2 = a2 - a1;
+  const L3 = a3 - a2;
+
+  const safeDiv = (num, den) =>
+    Math.abs(den) < 1e-12 ? 0 : num / den;
+
+  // Layer resistances (from your summary table)
+  const RL1 = R1;
+  const RL2 = safeDiv(a2 * R2 - a1 * R1, a2 - a1);
+  const RL3 = safeDiv(a3 * R3 - a2 * R2, a3 - a2);
+
+  // Layer resistivities (all using a1, as in the document)
+  const rhoL1 = 2 * Math.PI * a1 * RL1;
+  const rhoL2 = 2 * Math.PI * a1 * RL2;
+  const rhoL3 = 2 * Math.PI * a1 * RL3;
+
+  const layers = [
+    {
+      layer: "Layer 1",
+      L: L1,
+      depth_m: L1,
+      resistance_ohm: RL1,
+      RL: RL1,
+      resistivity_ohm_m: rhoL1,
+      rho: rhoL1,
+    },
+    {
+      layer: "Layer 2",
+      L: L2,
+      depth_m: L2,
+      resistance_ohm: RL2,
+      RL: RL2,
+      resistivity_ohm_m: rhoL2,
+      rho: rhoL2,
+    },
+    {
+      layer: "Layer 3",
+      L: L3,
+      depth_m: L3,
+      resistance_ohm: RL3,
+      RL: RL3,
+      resistivity_ohm_m: rhoL3,
+      rho: rhoL3,
+    },
+  ];
 
   return {
-    inputs,
-    rho_top_ohm_m: rho_top,
-    rho_bottom_ohm_m: rho_bottom,
-    boundary_depth_m: t_top, // present as boundary for single-layer case
-    rho_app_ohm_m: rho_app,
-    table,
+    inputs: { ...inputs },
+    layers,
   };
 }
+
+// Alias to keep older imports working if you had them
+export const computeBarnesSingleLayer = computeBarnesLayers;

@@ -276,7 +276,7 @@ export default function HeaderSaveBar({
           type="button"
           onClick={onClickSave}
           disabled={!canSave || busy}
-          className={`text-sm px-3 py-1.5 rounded-none border ${
+          className={`text-sm px-3 py-1.5 rounded-xl border ${
             canSave
               ? "bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
               : "opacity-60 cursor-not-allowed"
@@ -295,7 +295,7 @@ export default function HeaderSaveBar({
           type="button"
           onClick={handleExportPdf}
           disabled={busy}
-          className="text-sm px-3 py-1.5 rounded-none border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
+          className="text-sm px-3 py-1.5 rounded-xl border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 mx-2"
           title="Export PDF (inputs + results + Recharts chart)"
         >
           {busy ? "…" : "Export PDF"}

@@ -7,7 +7,7 @@ export default function FreeConsultation() {
   const CP_WHITE = "#FFFFFF";
 
   // === Cal.com public event URL (from your dashboard) ===
-  const PUBLIC_EVENT_URL = "https://cal.com/cp-6n2f3g/cp-pto";
+  const PUBLIC_EVENT_URL = "https://cal.com/islam-saleh-fm6riv/";
 
   const params = new URLSearchParams({
     embed: "true",

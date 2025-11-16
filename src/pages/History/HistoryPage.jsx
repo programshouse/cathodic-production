@@ -4,6 +4,7 @@ import PageLayout from "../../components/ui/PageLayout";
 import PageHeader from "../../components/ui/PageHeader";
 import ModuleCard from "../../components/ui/ModuleCard";
 import { useFoldersStore } from "../../stores/useFoldersStore";
+import FolderPickerModal from "../../components/ui/FolderPickerModal";
 
 // Recharts (same config as your GalvanicResults)
 import {
@@ -427,6 +428,7 @@ export default function HistoryPage() {
   const [folderDetailsById, setFolderDetailsById] = React.useState({});
   const [detailLoading, setDetailLoading] = React.useState(false);
   const [detailError, setDetailError] = React.useState(null);
+  const [openFolderModal, setOpenFolderModal] = React.useState(false);
 
   React.useEffect(() => {
     fetchFolders();
@@ -462,17 +464,6 @@ export default function HistoryPage() {
     }
   };
 
-  const handleCreateFolder = async () => {
-    const name = prompt("Folder (project) name:");
-    if (!name || !name.trim()) return;
-    const created = await create(name.trim());
-    // Refresh the list and auto-open the newly created folder
-    await fetchFolders();
-    if (created?.id) {
-      setOpenFolderId(created.id);
-      await loadFolderDetails(created.id);
-    }
-  };
 
   const handleDeleteFolder = async (folderId, folderName) => {
     if (
@@ -515,15 +506,15 @@ export default function HistoryPage() {
     <PageLayout title="History | CP">
       <PageHeader
         title="Server Folders & History"
-        description="Browse folders (projects) and view their calculation runs from the backend."
+        description="Browse folders (projects) and view their calculation."
         actions={
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleCreateFolder}
+              onClick={() => setOpenFolderModal(true)}
               className="text-xs px-3 py-1.5 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
-              New folder
+              Create New Folder / Project
             </button>
             <button
               type="button"
@@ -550,7 +541,7 @@ export default function HistoryPage() {
         {!folders || folders.length === 0 ? (
           <ModuleCard
             title="No folders"
-            subtitle="No server folders found. Create one using the 'New folder' button above."
+            subtitle="No server folders found. Create one using the 'Create New Folder / Project' button above."
           />
         ) : (
           folders.map((f) => {
@@ -880,6 +871,19 @@ export default function HistoryPage() {
           })
         )}
       </div>
+      <FolderPickerModal
+        open={openFolderModal}
+        onClose={() => setOpenFolderModal(false)}
+        defaultName="New Folder"
+        onPicked={async (id) => {
+          setOpenFolderModal(false);
+          if (id) {
+            await fetchFolders();
+            setOpenFolderId(id);
+            await loadFolderDetails(id);
+          }
+        }}
+      />
     </PageLayout>
   );
 }

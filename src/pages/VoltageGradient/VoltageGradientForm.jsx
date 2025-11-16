@@ -12,30 +12,73 @@ export default function VoltageGradientForm({
   initialValues = {},
 }) {
   // state
-  const [sourceType, setSourceType] = useState(initialValues.sourceType ?? "distributed");
+  const [sourceType, setSourceType] = useState(
+    initialValues.sourceType ?? "distributed"
+  );
   const [I, setI] = useState(
     initialValues.I !== undefined && initialValues.I !== null ? initialValues.I : ""
   );
   const [IUnit, setIUnit] = useState(initialValues.IUnit ?? "A");
+
   const [rho, setRho] = useState(
     initialValues.rho !== undefined && initialValues.rho !== null ? initialValues.rho : ""
   );
-  // NOTE: utils usually expect 'ohm_m' / 'ohm_cm'
+  // NOTE: utils expect 'ohm_m' / 'ohm_cm'
   const [rhoUnit, setRhoUnit] = useState(initialValues.rhoUnit ?? "ohm_m");
+
   const [spacing, setSpacing] = useState(
-    initialValues.spacing !== undefined && initialValues.spacing !== null ? initialValues.spacing : ""
+    initialValues.spacing !== undefined && initialValues.spacing !== null
+      ? initialValues.spacing
+      : ""
   );
   const [spacingUnit, setSpacingUnit] = useState(initialValues.spacingUnit ?? "m");
+
   const [pipelineDepth, setPipelineDepth] = useState(
-    initialValues.pipelineDepth !== undefined && initialValues.pipelineDepth !== null ? initialValues.pipelineDepth : ""
+    initialValues.pipelineDepth !== undefined && initialValues.pipelineDepth !== null
+      ? initialValues.pipelineDepth
+      : ""
   );
-  const [pipelineDepthUnit, setPipelineDepthUnit] = useState(initialValues.pipelineDepthUnit ?? "m");
+  const [pipelineDepthUnit, setPipelineDepthUnit] = useState(
+    initialValues.pipelineDepthUnit ?? "m"
+  );
+
   const [anodeDepth, setAnodeDepth] = useState(
-    initialValues.anodeDepth !== undefined && initialValues.anodeDepth !== null ? initialValues.anodeDepth : ""
+    initialValues.anodeDepth !== undefined && initialValues.anodeDepth !== null
+      ? initialValues.anodeDepth
+      : ""
   );
-  const [anodeDepthUnit, setAnodeDepthUnit] = useState(initialValues.anodeDepthUnit ?? "m");
+  const [anodeDepthUnit, setAnodeDepthUnit] = useState(
+    initialValues.anodeDepthUnit ?? "m"
+  );
+
+  const [anodeLength, setAnodeLength] = useState(
+    initialValues.anodeLength !== undefined && initialValues.anodeLength !== null
+      ? initialValues.anodeLength
+      : ""
+  );
+  const [anodeLengthUnit, setAnodeLengthUnit] = useState(
+    initialValues.anodeLengthUnit ?? "m"
+  );
 
   const needsSpacing = sourceType === "distributed" || sourceType === "shallow";
+  const needsLength = sourceType === "rod";
+
+  const handleReset = () => {
+    setSourceType("distributed");
+    setI("");
+    setIUnit("A");
+    setRho("");
+    setRhoUnit("ohm_m");
+    setSpacing("");
+    setSpacingUnit("m");
+    setPipelineDepth("");
+    setPipelineDepthUnit("m");
+    setAnodeDepth("");
+    setAnodeDepthUnit("m");
+    setAnodeLength("");
+    setAnodeLengthUnit("m");
+    onReset?.();
+  };
 
   const Header = () => (
     <div className="mb-6">
@@ -48,7 +91,8 @@ export default function VoltageGradientForm({
                 Voltage Gradient Calculator
               </h2>
               <p className="mt-2 text-sm text-white/95">
-                Compute Vm and V(x) around anodes for distributed / shallow / point sources.
+                Compute Vm and V(x) around anodes for distributed / shallow / point / rod
+                sources.
               </p>
             </div>
             <ResetPill onClick={handleReset} />
@@ -73,17 +117,9 @@ export default function VoltageGradientForm({
       pipelineDepthUnit,
       anodeDepth: Number(anodeDepth),
       anodeDepthUnit,
+      anodeLength: Number(anodeLength),
+      anodeLengthUnit,
     });
-  };
-
-  const handleReset = () => {
-    setSourceType("distributed");
-    setI(""); setIUnit("A");
-    setRho(""); setRhoUnit("ohm_m");
-    setSpacing(""); setSpacingUnit("m");
-    setPipelineDepth(""); setPipelineDepthUnit("m");
-    setAnodeDepth(""); setAnodeDepthUnit("m");
-    onReset?.();
   };
 
   return (
@@ -92,163 +128,191 @@ export default function VoltageGradientForm({
 
       {/* Parameters block */}
       <SectionCard title="Parameters">
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {/* Source type */}
-  <div>
-    <Label>Source Type</Label>
-    <Select
-      name="sourceType"
-      value={sourceType}
-      onChange={(e) => setSourceType(e.target.value)}
-    >
-      {SOURCE_TYPES.map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </Select>
-    <Help>Select the anode representation used in the model.</Help>
-  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Source type */}
+          <div>
+            <Label>Source Type</Label>
+            <Select
+              name="sourceType"
+              value={sourceType}
+              onChange={(e) => setSourceType(e.target.value)}
+            >
+              {SOURCE_TYPES.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Help>Select the anode representation used in the model.</Help>
+          </div>
 
-  {/* Current + unit (compact) */}
-  <div>
-    <Label>Anode Output Current I</Label>
-    <div className="flex">
-      <NumberInput
-        name="I"
-        value={I}
-        onChange={(e) => setI(e.target.value)}
-        step="0.1"
-        min="0"
-        required
-        placeholder="e.g. 20"
-        className="rounded-r-none border-r-0 focus:z-10"
-      />
-      <Select
-        name="IUnit"
-        value={IUnit}
-        onChange={(e) => setIUnit(e.target.value)}
-        className="w-24 rounded-l-none focus:z-10"
-      >
-        <option value="A">A</option>
-        <option value="mA">mA</option>
-      </Select>
-    </div>
-    <p className="mt-1 text-xs text-gray-500">
-      Tip: Typical MMO outputs — soil ≈ 8&nbsp;A, seawater ≈ 50&nbsp;A.
-    </p>
-  </div>
+          {/* Current + unit (compact) */}
+          <div>
+            <Label>Anode Output Current I</Label>
+            <div className="flex">
+              <NumberInput
+                name="I"
+                value={I}
+                onChange={(e) => setI(e.target.value)}
+                step="0.1"
+                min="0"
+                required
+                placeholder="e.g. 20"
+                className="rounded-r-none border-r-0 focus:z-10"
+              />
+              <Select
+                name="IUnit"
+                value={IUnit}
+                onChange={(e) => setIUnit(e.target.value)}
+                className="w-24 rounded-l-none focus:z-10"
+              >
+                <option value="A">A</option>
+                <option value="mA">mA</option>
+              </Select>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Tip: Typical MMO outputs — soil ≈ 8&nbsp;A, seawater ≈ 50&nbsp;A.
+            </p>
+          </div>
 
-  {/* Spacing (only when needed) */}
-  {needsSpacing && (
-    <div className="md:col-span-2">
-      <Label>Anode Spacing s</Label>
-      <div className="flex max-w-md">
-        <NumberInput
-          name="spacing"
-          value={spacing}
-          onChange={(e) => setSpacing(e.target.value)}
-          step="0.1"
-          min="0.01"
-          required
-          placeholder="e.g. 5"
-          className="rounded-r-none border-r-0 focus:z-10"
-        />
-        <Select
-          name="spacingUnit"
-          value={spacingUnit}
-          onChange={(e) => setSpacingUnit(e.target.value)}
-          className="w-24 rounded-l-none focus:z-10"
-        >
-          <option value="m">m</option>
-          <option value="ft">ft</option>
-        </Select>
-      </div>
-    </div>
-  )}
+          {/* Spacing (only when needed) */}
+          {needsSpacing && (
+            <div className="md:col-span-2">
+              <Label>Anode Spacing s</Label>
+              <div className="flex max-w-md">
+                <NumberInput
+                  name="spacing"
+                  value={spacing}
+                  onChange={(e) => setSpacing(e.target.value)}
+                  step="0.1"
+                  min="0.01"
+                  required
+                  placeholder="e.g. 5"
+                  className="rounded-r-none border-r-0 focus:z-10"
+                />
+                <Select
+                  name="spacingUnit"
+                  value={spacingUnit}
+                  onChange={(e) => setSpacingUnit(e.target.value)}
+                  className="w-24 rounded-l-none focus:z-10"
+                >
+                  <option value="m">m</option>
+                  <option value="ft">ft</option>
+                </Select>
+              </div>
+            </div>
+          )}
 
-  {/* Resistivity + unit (compact) */}
-  <div className="md:col-span-2">
-    <Label>Soil Resistivity ρ</Label>
-    <div className="flex max-w-md">
-      <NumberInput
-        name="rho"
-        value={rho}
-        onChange={(e) => setRho(e.target.value)}
-        step="1"
-        min="1"
-        required
-        placeholder="e.g. 1000"
-        className="rounded-r-none border-r-0 focus:z-10"
-      />
-      <Select
-        name="rhoUnit"
-        value={rhoUnit}
-        onChange={(e) => setRhoUnit(e.target.value)}
-        className="w-32 rounded-l-none focus:z-10"
-      >
-        {/* matches utils: 'ohm_m' / 'ohm_cm' */}
-        <option value="ohm_m">Ω·m</option>
-        <option value="ohm_cm">Ω·cm</option>
-      </Select>
-    </div>
-  </div>
+          {/* Anode Length L (only when 'rod') */}
+          {needsLength && (
+            <div className="md:col-span-2">
+              <Label>Anode Length L</Label>
+              <div className="flex max-w-md">
+                <NumberInput
+                  name="anodeLength"
+                  value={anodeLength}
+                  onChange={(e) => setAnodeLength(e.target.value)}
+                  step="0.1"
+                  min="0.01"
+                  required
+                  placeholder="e.g. 2"
+                  className="rounded-r-none border-r-0 focus:z-10"
+                />
+                <Select
+                  name="anodeLengthUnit"
+                  value={anodeLengthUnit}
+                  onChange={(e) => setAnodeLengthUnit(e.target.value)}
+                  className="w-24 rounded-l-none focus:z-10"
+                >
+                  <option value="m">m</option>
+                  <option value="ft">ft</option>
+                </Select>
+              </div>
+            </div>
+          )}
 
-  {/* Pipeline depth (compact) */}
-  <div>
-    <Label>Pipeline Depth</Label>
-    <div className="flex">
-      <NumberInput
-        name="pipelineDepth"
-        value={pipelineDepth}
-        onChange={(e) => setPipelineDepth(e.target.value)}
-        step="0.1"
-        min="0"
-        required
-        placeholder="e.g. 1.5"
-        className="rounded-r-none border-r-0 focus:z-10"
-      />
-      <Select
-        name="pipelineDepthUnit"
-        value={pipelineDepthUnit}
-        onChange={(e) => setPipelineDepthUnit(e.target.value)}
-        className="w-24 rounded-l-none focus:z-10"
-      >
-        <option value="m">m</option>
-        <option value="ft">ft</option>
-      </Select>
-    </div>
-  </div>
+          {/* Resistivity + unit (compact) */}
+          <div className="md:col-span-2">
+            <Label>Soil Resistivity ρ</Label>
+            <div className="flex max-w-md">
+              <NumberInput
+                name="rho"
+                value={rho}
+                onChange={(e) => setRho(e.target.value)}
+                step="1"
+                min="1"
+                required
+                placeholder="e.g. 1000"
+                className="rounded-r-none border-r-0 focus:z-10"
+              />
+              <Select
+                name="rhoUnit"
+                value={rhoUnit}
+                onChange={(e) => setRhoUnit(e.target.value)}
+                className="w-32 rounded-l-none focus:z-10"
+              >
+                <option value="ohm_m">Ω·m</option>
+                <option value="ohm_cm">Ω·cm</option>
+              </Select>
+            </div>
+          </div>
 
-  {/* Anode depth (compact) */}
-  <div>
-    <Label>Anode Depth</Label>
-    <div className="flex">
-      <NumberInput
-        name="anodeDepth"
-        value={anodeDepth}
-        onChange={(e) => setAnodeDepth(e.target.value)}
-        step="0.1"
-        min="0"
-        required
-        placeholder="e.g. 2"
-        className="rounded-r-none border-r-0 focus:z-10"
-      />
-      <Select
-        name="anodeDepthUnit"
-        value={anodeDepthUnit}
-        onChange={(e) => setAnodeDepthUnit(e.target.value)}
-        className="w-24 rounded-l-none focus:z-10"
-      >
-        <option value="m">m</option>
-        <option value="ft">ft</option>
-      </Select>
-    </div>
-  </div>
+          {/* Pipeline depth (compact) */}
+          <div>
+            <Label>Pipeline Depth</Label>
+            <div className="flex">
+              <NumberInput
+                name="pipelineDepth"
+                value={pipelineDepth}
+                onChange={(e) => setPipelineDepth(e.target.value)}
+                step="0.1"
+                min="0"
+                required
+                placeholder="e.g. 1.5"
+                className="rounded-r-none border-r-0 focus:z-10"
+              />
+              <Select
+                name="pipelineDepthUnit"
+                value={pipelineDepthUnit}
+                onChange={(e) => setPipelineDepthUnit(e.target.value)}
+                className="w-24 rounded-l-none focus:z-10"
+              >
+                <option value="m">m</option>
+                <option value="ft">ft</option>
+              </Select>
+            </div>
+          </div>
 
-  <div className="md:col-span-2">
-    <Help>All inputs are converted to SI units internally.</Help>
-  </div>
-</div>
+          {/* Anode depth (compact) */}
+          <div>
+            <Label>Anode Depth</Label>
+            <div className="flex">
+              <NumberInput
+                name="anodeDepth"
+                value={anodeDepth}
+                onChange={(e) => setAnodeDepth(e.target.value)}
+                step="0.1"
+                min="0"
+                required
+                placeholder="e.g. 2"
+                className="rounded-r-none border-r-0 focus:z-10"
+              />
+              <Select
+                name="anodeDepthUnit"
+                value={anodeDepthUnit}
+                onChange={(e) => setAnodeDepthUnit(e.target.value)}
+                className="w-24 rounded-l-none focus:z-10"
+              >
+                <option value="m">m</option>
+                <option value="ft">ft</option>
+              </Select>
+            </div>
+          </div>
 
+          <div className="md:col-span-2">
+            <Help>All inputs are converted to SI units internally.</Help>
+          </div>
+        </div>
 
         <div className="mt-4">
           <PrimaryButton type="submit" disabled={!!submitting}>

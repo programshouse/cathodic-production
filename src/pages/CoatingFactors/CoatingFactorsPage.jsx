@@ -31,8 +31,6 @@ export default class CoatingFactorsPage extends React.Component {
       error: null,
       activeTab: "results",
       savedInputs: parsed?.inputs || null,
-      selectedTemperatureC: parsed?.inputs?.temperatureC ?? 25,
-      selectedSoilType: parsed?.inputs?.soilType ?? "sandy",
     };
 
     // right pane capture for HeaderSaveBar (PDF & server screenshot)
@@ -46,8 +44,6 @@ export default class CoatingFactorsPage extends React.Component {
         const fd = new FormData(e.target);
         const coatingType = fd.get("coatingType");
         const designLifeYears = Number(fd.get("designLifeYears"));
-        const temperatureC = Number(fd.get("temperatureC"));
-        const soilType = fd.get("soilType");
 
         // basic validation
         if (!coatingType || !(designLifeYears > 0)) {
@@ -58,7 +54,7 @@ export default class CoatingFactorsPage extends React.Component {
           return;
         }
 
-        const inputs = { coatingType, designLifeYears, temperatureC, soilType };
+        const inputs = { coatingType, designLifeYears };
 
         const calc = breakdownFactor(inputs);
         const series = seriesOverLife(inputs);
@@ -79,8 +75,6 @@ export default class CoatingFactorsPage extends React.Component {
         this.setState({
           results,
           savedInputs: inputs,
-          selectedTemperatureC: temperatureC,
-          selectedSoilType: soilType,
           activeTab: "results",
         });
       } catch (err) {
@@ -101,8 +95,6 @@ export default class CoatingFactorsPage extends React.Component {
       error: null,
       activeTab: "results",
       savedInputs: null,
-      selectedTemperatureC: 25,
-      selectedSoilType: "sandy",
     });
   };
 
@@ -128,8 +120,6 @@ export default class CoatingFactorsPage extends React.Component {
       error,
       activeTab,
       savedInputs,
-      selectedTemperatureC,
-      selectedSoilType,
     } = this.state;
 
     const headerActions = (
@@ -146,9 +136,7 @@ export default class CoatingFactorsPage extends React.Component {
         buildName={({ inputs, project }) => {
           const ct = inputs?.coatingType || "—";
           const life = inputs?.designLifeYears ?? "—";
-          const t = inputs?.temperatureC ?? "—";
-          const soil = inputs?.soilType || "—";
-          return `${project?.name || "Default"} • ${ct} • life=${life}y • ${t}°C • ${soil}`;
+          return `${project?.name || "Default"} • ${ct} • life=${life}y`;
         }}
       />
     );
@@ -181,10 +169,7 @@ export default class CoatingFactorsPage extends React.Component {
               <CoatingFactorsResults results={results} />
             )}
             {activeTab === "reference" && (
-              <CoatingFactorsReference
-                temperatureC={selectedTemperatureC}
-                soilType={selectedSoilType}
-              />
+              <CoatingFactorsReference />
             )}
           </div>
         }

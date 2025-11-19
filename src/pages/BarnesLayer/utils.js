@@ -1,6 +1,6 @@
 // Barnes Layer Resistivity utilities
 // Wenner apparent resistivity: ρ_a = 2 · π · a · R
-// Barnes 3-layer method as per your document/table.
+// Barnes 3-layer method as per your document/table (with updated green equations).
 
 // Units (kept for compatibility with other modules if needed)
 export const UNIT = {
@@ -27,7 +27,7 @@ export function computeApparentResistivity({ spacing_m, measured_R_ohm }) {
   return rho_a;
 }
 
-// (Kept for compatibility; no longer used by the Barnes 3-layer routine)
+// (Kept for compatibility; not used directly by the 3-layer routine)
 export function buildSpacingTable({
   increments = [0.5, 1, 1.5, 3, 6, 9, 12, 15, 18, 21, 24, 27],
   measured_R_ohm = 1,
@@ -58,18 +58,16 @@ export function buildSpacingTable({
 //
 // Step 2: Layer depths
 //   L1 = a1
-//   L2 = a2 - a1
-//   L3 = a3 - a2
+//   L2 = a2 − a1
+//   L3 = a3 − a2
 //
-// Step 3: Layer resistances
-//   RL1 = R_a1
-//   RL2 = (a2 R_a2 - a1 R_a1) / (a2 - a1)
-//   RL3 = (a3 R_a3 - a2 R_a2) / (a3 - a2)
+// Step 3: Layer resistances (UPDATED per green cells)
+//   RL1 = R1
+//   RL2 = (R1 R2)/(R1 − R2)
+//   RL3 = (R3 R3)/(R2 − R3)
 //
 // Step 4: Layer resistivities
-//   ρL1 = 2 π a1 RL1
-//   ρL2 = 2 π a1 RL2
-//   ρL3 = 2 π a1 RL3
+//   ρLᵢ = 2 π a1 RLᵢ
 //
 export function computeBarnesLayers(inputs) {
   const a1 = Number(inputs.a1 || 0);
@@ -88,10 +86,10 @@ export function computeBarnesLayers(inputs) {
   const safeDiv = (num, den) =>
     Math.abs(den) < 1e-12 ? 0 : num / den;
 
-  // Layer resistances (from your summary table)
+  // Layer resistances (UPDATED equations)
   const RL1 = R1;
-  const RL2 = safeDiv(a2 * R2 - a1 * R1, a2 - a1);
-  const RL3 = safeDiv(a3 * R3 - a2 * R2, a3 - a2);
+  const RL2 = safeDiv(R1 * R2, R1 - R2);
+  const RL3 = safeDiv(R3 * R3, R2 - R3);
 
   // Layer resistivities (all using a1, as in the document)
   const rhoL1 = 2 * Math.PI * a1 * RL1;
@@ -106,6 +104,7 @@ export function computeBarnesLayers(inputs) {
       resistance_ohm: RL1,
       RL: RL1,
       resistivity_ohm_m: rhoL1,
+      rho_ohm_m: rhoL1,
       rho: rhoL1,
     },
     {
@@ -115,6 +114,7 @@ export function computeBarnesLayers(inputs) {
       resistance_ohm: RL2,
       RL: RL2,
       resistivity_ohm_m: rhoL2,
+      rho_ohm_m: rhoL2,
       rho: rhoL2,
     },
     {
@@ -124,6 +124,7 @@ export function computeBarnesLayers(inputs) {
       resistance_ohm: RL3,
       RL: RL3,
       resistivity_ohm_m: rhoL3,
+      rho_ohm_m: rhoL3,
       rho: rhoL3,
     },
   ];

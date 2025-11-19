@@ -98,8 +98,6 @@ export default function BarnesLayerForm({
             />
             <Help>Measured resistance at spacing a₁.</Help>
           </div>
-
-          {/* spacer for layout on md */}
           <div className="hidden md:block" />
 
           {/* a2, R2 */}
@@ -131,7 +129,6 @@ export default function BarnesLayerForm({
             />
             <Help>Measured resistance at spacing a₂.</Help>
           </div>
-
           <div className="hidden md:block" />
 
           {/* a3, R3 */}
@@ -167,16 +164,24 @@ export default function BarnesLayerForm({
 
         {/* Equations hint for next steps */}
         <div className="mt-4 rounded-lg bg-slate-50 dark:bg-slate-900/40 border px-4 py-3 text-xs leading-relaxed">
-          <div className="font-semibold mb-1">Next Steps (calculated by module)</div>
+          <div className="font-semibold mb-1">
+            Next Steps (calculated by module)
+          </div>
           <ul className="list-disc list-inside space-y-0.5">
+            <li>Layer depths: L₁ = a₁, L₂ = a₂ − a₁, L₃ = a₃ − a₂</li>
             <li>
-              Layer depths: L₁ = a₁, L₂ = a₂ − a₁, L₃ = a₃ − a₂
+              Layer resistances (updated – green cells):{" "}
+              <span className="font-semibold">
+                RL₁ = R₁,&nbsp;
+                RL₂ = (R₁·R₂)/(R₁ − R₂),&nbsp;
+                RL₃ = (R₃·R₃)/(R₂ − R₃)
+              </span>
             </li>
             <li>
-              Layer resistances: RL₁ = R₁, RL₂ = (a₂·R₂ − a₁·R₁)/(a₂ − a₁), RL₃ = (a₃·R₃ − a₂·R₂)/(a₃ − a₂)
-            </li>
-            <li>
-              Layer resistivities: ρLᵢ = 2π·a₁·RLᵢ (for i = 1,2,3)
+              Layer resistivities:{" "}
+              <span className="font-semibold">
+                ρLᵢ = 2π·a₁·RLᵢ &nbsp; (i = 1, 2, 3)
+              </span>
             </li>
           </ul>
         </div>

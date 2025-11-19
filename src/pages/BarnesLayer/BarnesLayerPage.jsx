@@ -26,8 +26,17 @@ export default class BarnesLayerPage extends React.Component {
   onSubmit = (raw) => {
     const { a1, a2, a3, R1, R2, R3 } = raw || {};
 
-    if (!(Number(a1) > 0) || !(Number(a2) > 0) || !(Number(a3) > 0) || !(Number(R1) > 0) || !(Number(R2) > 0) || !(Number(R3) > 0)) {
-      this.setState({ error: "Please enter positive values for a₁–a₃ and R₁–R₃." });
+    if (
+      !(Number(a1) > 0) ||
+      !(Number(a2) > 0) ||
+      !(Number(a3) > 0) ||
+      !(Number(R1) > 0) ||
+      !(Number(R2) > 0) ||
+      !(Number(R3) > 0)
+    ) {
+      this.setState({
+        error: "Please enter positive values for a₁–a₃ and R₁–R₃.",
+      });
       return;
     }
 
@@ -42,7 +51,11 @@ export default class BarnesLayerPage extends React.Component {
 
     const results = computeBarnesLayers(inputs);
 
-    this.setState({ results, savedInputs: inputs, error: null });
+    this.setState({
+      results,
+      savedInputs: inputs,
+      error: null,
+    });
   };
 
   onResetAll = () => {
@@ -52,29 +65,26 @@ export default class BarnesLayerPage extends React.Component {
   downloadResultsCsv = () => {
     const { results } = this.state || {};
     if (!results) return;
-    const {
-      rho_top_ohm_m,
-      rho_bottom_ohm_m,
-      boundary_depth_m,
-      rho_app_ohm_m,
-      table = [],
-    } = results;
+
+    const { layers = [], inputs } = results;
 
     const rows = [
-      ["metric", "value", "unit"],
-      ["Top Layer Resistivity", Number(rho_top_ohm_m || 0), "Ω·m"],
-      ["Bottom Layer Resistivity", Number(rho_bottom_ohm_m || 0), "Ω·m"],
-      ["Layer Boundary Depth", Number(boundary_depth_m || 0), "m"],
-      ["Apparent Resistivity", Number(rho_app_ohm_m || 0), "Ω·m"],
-      [],
-      ["Spacing (m)", "Measured R (Ω)", "Apparent ρ (Ω·m)", "Depth (m)"],
-      ...table.map((r) => [
-        Number(r.spacing_m || 0),
-        Number(r.R_meas_ohm || 0),
-        Number(r.rho_app_ohm_m || 0),
-        Number(r.depth_m || 0),
+      ["Layer", "L (m)", "RL (Ω)", "ρL (Ω·m)"],
+      ...layers.map((l, idx) => [
+        l.layer ?? `Layer ${idx + 1}`,
+        Number(l.L ?? l.depth_m ?? 0),
+        Number(l.RL ?? l.resistance_ohm ?? 0),
+        Number(l.rho_ohm_m ?? l.resistivity_ohm_m ?? 0),
       ]),
+      [],
+      ["a1 (m)", inputs?.a1 ?? ""],
+      ["a2 (m)", inputs?.a2 ?? ""],
+      ["a3 (m)", inputs?.a3 ?? ""],
+      ["R1 (Ω)", inputs?.R1 ?? ""],
+      ["R2 (Ω)", inputs?.R2 ?? ""],
+      ["R3 (Ω)", inputs?.R3 ?? ""],
     ];
+
     const csv = rows
       .map((r) =>
         r
@@ -84,6 +94,7 @@ export default class BarnesLayerPage extends React.Component {
           .join(",")
       )
       .join("\n");
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -98,7 +109,6 @@ export default class BarnesLayerPage extends React.Component {
   render() {
     const { submitting, results, error, savedInputs } = this.state;
 
-    // Header actions: Save (with folder picker) + Export PDF (text blocks)
     const headerActions = (
       <HeaderSaveBar
         moduleKey="barnes_layer_calc"
@@ -106,19 +116,13 @@ export default class BarnesLayerPage extends React.Component {
         inputs={savedInputs}
         results={results}
         captureRef={this.captureRef}
-        // server history formula name
         formulaName="Barnes Layer Resistivity"
         modulePath="/pages/barnes-layer"
         buildName={({ inputs, project }) => {
-          // inputs here are the raw (form) values we stored for local recall
-          const top = inputs?.rho_top_value
-            ? `${inputs.rho_top_value} ${inputs.rho_top_unit || "Ω·m"}`
-            : "—";
-          const bot = inputs?.rho_bottom_value
-            ? `${inputs.rho_bottom_value} ${inputs.rho_bottom_unit || "Ω·m"}`
-            : "—";
-          const a = inputs?.spacing_m ? `${inputs.spacing_m} m` : "—";
-          return `${project?.name || "Default"} • ρ₁=${top} • ρ₂=${bot} • a=${a}`;
+          const a1 = inputs?.a1 ?? "—";
+          const a2 = inputs?.a2 ?? "—";
+          const a3 = inputs?.a3 ?? "—";
+          return `${project?.name || "Default"} • a₁=${a1} m • a₂=${a2} m • a₃=${a3} m`;
         }}
       />
     );
@@ -145,7 +149,14 @@ export default class BarnesLayerPage extends React.Component {
           <div className="space-y-4" ref={this.captureRef}>
             <ModuleCard
               title="Barnes Layer Calculation"
-              subtitle="L₁=a₁, L₂=a₂−a₁, L₃=a₃−a₂; ρLᵢ = 2π·a₁·RLᵢ"
+              subtitle={
+                <>
+                  RL₁ = R₁,&nbsp;
+                  RL₂ = (R₁·R₂)/(R₁ − R₂),&nbsp;
+                  RL₃ = (R₃·R₃)/(R₂ − R₃);&nbsp;
+                  ρLᵢ = 2π·a₁·RLᵢ
+                </>
+              }
               actions={
                 <div className="flex items-center gap-2">
                   <button
@@ -160,8 +171,8 @@ export default class BarnesLayerPage extends React.Component {
               }
             >
               <div className="text-sm text-gray-700 dark:text-gray-300">
-                Single-layer Barnes method demonstration with apparent
-                resistivity vs spacing.
+                Three-layer Barnes method using updated RL₂ / RL₃ equations
+                (highlighted in green in the design notes).
               </div>
             </ModuleCard>
 

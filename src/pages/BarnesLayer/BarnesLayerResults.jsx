@@ -26,21 +26,17 @@ export default function BarnesLayerResults({ results }) {
 
   // total investigated depth
   const totalDepth = layers.reduce(
-    (sum, l) => sum + toNumber(l.depth_m ?? l.L ?? 0),
+    (sum, l) => sum + toNumber(l.L ?? l.depth_m ?? 0),
     0
   );
 
   // build profile data: cumulative depth vs resistivity
   let cumDepth = 0;
   const profileData = layers.map((l) => {
-    const d = toNumber(l.depth_m ?? l.L ?? 0);
+    const d = toNumber(l.L ?? l.depth_m ?? 0);
     cumDepth += d;
     const rho =
-      l.resistivity_ohm_m ??
-      l.rho_ohm_m ??
-      l.resistivity ??
-      l.rho ??
-      0;
+      l.resistivity_ohm_m ?? l.rho_ohm_m ?? l.resistivity ?? l.rho ?? 0;
     return {
       depth_m: cumDepth,
       rho_ohm_m: toNumber(rho),
@@ -51,7 +47,10 @@ export default function BarnesLayerResults({ results }) {
   return (
     <div className="space-y-4">
       {/* Key summary card */}
-      <ModuleCard title="Barnes Layer Results" subtitle="Layer depths, resistances, and resistivities">
+      <ModuleCard
+        title="Barnes Layer Results"
+        subtitle="Layer depth Lᵢ, resistance RLᵢ and resistivity ρLᵢ"
+      >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <ResultValue
             label="Number of Layers"
@@ -68,7 +67,7 @@ export default function BarnesLayerResults({ results }) {
           {inputs && (
             <ResultValue
               label="Input Spacings"
-              value={""}
+              value=""
               unit=""
               renderValue={() => (
                 <span className="text-sm">
@@ -90,30 +89,22 @@ export default function BarnesLayerResults({ results }) {
                   Layer
                 </th>
                 <th className="px-3 py-2 border border-gray-300 dark:border-gray-700 text-left">
-                  Layer Depth (m)
+                  Layer Depth Lᵢ (m)
                 </th>
                 <th className="px-3 py-2 border border-gray-300 dark:border-gray-700 text-left">
-                  Resistance (Ω)
+                  RLᵢ (Ω)
                 </th>
                 <th className="px-3 py-2 border border-gray-300 dark:border-gray-700 text-left">
-                  Resistivity (Ω·m)
+                  ρLᵢ (Ω·m)
                 </th>
               </tr>
             </thead>
             <tbody>
               {layers.map((l, idx) => {
-                const depth = toNumber(l.depth_m ?? l.L ?? 0);
-                const R =
-                  l.resistance_ohm ??
-                  l.RL ??
-                  l.R ??
-                  0;
+                const depth = toNumber(l.L ?? l.depth_m ?? 0);
+                const RL = toNumber(l.RL ?? l.resistance_ohm ?? l.R ?? 0);
                 const rho =
-                  l.resistivity_ohm_m ??
-                  l.rho_ohm_m ??
-                  l.resistivity ??
-                  l.rho ??
-                  0;
+                  l.resistivity_ohm_m ?? l.rho_ohm_m ?? l.resistivity ?? l.rho ?? 0;
 
                 return (
                   <tr
@@ -127,7 +118,7 @@ export default function BarnesLayerResults({ results }) {
                       {depth.toFixed(3)}
                     </td>
                     <td className="px-3 py-2 border border-gray-300 dark:border-gray-700">
-                      {toNumber(R).toFixed(3)}
+                      {RL.toFixed(3)}
                     </td>
                     <td className="px-3 py-2 border border-gray-300 dark:border-gray-700">
                       {toNumber(rho).toFixed(3)}

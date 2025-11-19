@@ -1,8 +1,9 @@
+// /src/pages/resistor-sizing/ResistorSizingPage.jsx
 import React from "react";
 
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import ModuleCard from "../../components/ui/ModuleCard";
-import Tabs from "../../components/ui/Tabs";
+import ResetPill from "../../components/ui/ResetPill";
 import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 import ResistorSizingForm from "./ResistorSizingForm";
@@ -17,7 +18,6 @@ export default class ResistorSizingPage extends React.Component {
       results: null,
       error: null,
       savedInputs: null,
-      activeTab: "results",
     };
     this.captureRef = React.createRef();
   }
@@ -38,22 +38,17 @@ export default class ResistorSizingPage extends React.Component {
     }
 
     const inputs = {
-      I_design_A,
-      V_drop_V,
-      safety_factor,
+      I_design_A: Number(I_design_A),
+      V_drop_V: Number(V_drop_V),
+      safety_factor: Number(safety_factor),
     };
 
-    const results = computeVariableResistorSizing({
-      I_design_A: Number(I_design_A || 0),
-      V_drop_V: Number(V_drop_V || 0),
-      safety_factor: Number(safety_factor || 1),
-    });
+    const results = computeVariableResistorSizing(inputs);
 
     this.setState({
       results,
       savedInputs: inputs,
       error: null,
-      activeTab: "results",
     });
   };
 
@@ -62,14 +57,57 @@ export default class ResistorSizingPage extends React.Component {
       results: null,
       error: null,
       savedInputs: null,
-      activeTab: "results",
     });
   };
 
-  setTab = (key) => this.setState({ activeTab: key });
+  downloadResultsCsv = () => {
+    const { results } = this.state || {};
+    if (!results) return;
+
+    const {
+      R_nominal = 0,
+      R_min = 0,
+      R_max = 0,
+      P_required = 0,
+      P_recommended = 0,
+      inputs,
+    } = results;
+
+    const rows = [
+      ["metric", "value", "unit"],
+      ["I_design", inputs?.I_design_A ?? "", "A"],
+      ["V_drop", inputs?.V_drop_V ?? "", "V"],
+      ["Safety factor", inputs?.safety_factor ?? "", "-"],
+      ["R_nominal", R_nominal, "Ω"],
+      ["R_min", R_min, "Ω"],
+      ["R_max", R_max, "Ω"],
+      ["P_required", P_required, "W"],
+      ["P_recommended", P_recommended, "W"],
+    ];
+
+    const csv = rows
+      .map((r) =>
+        r
+          .map((c) =>
+            c === undefined ? "" : `"${String(c).replaceAll('"', '""')}"`
+          )
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "resistor-sizing-results.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   render() {
-    const { submitting, results, error, savedInputs, activeTab } = this.state;
+    const { submitting, results, error, savedInputs } = this.state;
     const pageTitle = "Variable Resistor Sizing Calculator (CP)";
 
     const headerActions = (
@@ -92,6 +130,7 @@ export default class ResistorSizingPage extends React.Component {
 
     return (
       <CalculatorPanel
+        header={<div className="mb-6" />}
         headerActions={headerActions}
         left={
           <div>
@@ -112,17 +151,30 @@ export default class ResistorSizingPage extends React.Component {
         }
         right={
           <div className="space-y-4" ref={this.captureRef}>
-            <Tabs
-              items={[{ key: "results", label: "Results" }]}
-              activeKey={activeTab}
-              onChange={this.setTab}
-            />
-
-            {activeTab === "results" && (
-              <div className="space-y-4">
-                <ResistorSizingResults results={results} />
+            <ModuleCard
+              title="Variable Resistor System"
+              subtitle="R = V / I, P = I² × R, adjustable range 0 to 2R."
+              actions={
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={this.downloadResultsCsv}
+                    className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    CSV
+                  </button>
+                  <ResetPill onClick={this.onResetAll} />
+                </div>
+              }
+            >
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                Design outputs include nominal resistance, recommended
+                adjustable range, required power dissipation, and recommended
+                resistor power rating with the selected safety factor.
               </div>
-            )}
+            </ModuleCard>
+
+            <ResistorSizingResults results={results} />
           </div>
         }
       />

@@ -10,12 +10,7 @@ import VoltageGradientForm from "./VoltageGradientForm";
 import VoltageGradientResults from "./VoltageGradientResults";
 import VoltageGradientReference from "./VoltageGradientReference";
 
-import {
-  computeVoltageGradient,
-  currentToA,
-  resistivityToOhmM,
-  lengthToM,
-} from "./utils";
+import { computeVoltageGradient } from "./utils";
 
 export default class VoltageGradientPage extends React.Component {
   constructor(props) {
@@ -28,182 +23,45 @@ export default class VoltageGradientPage extends React.Component {
       savedInputs: null,
     };
 
-    // Right pane ref for HeaderSaveBar screenshot/PDF capture
     this.captureRef = React.createRef();
   }
 
-  // Unified handler: supports both (e) form submit and (inputsObj) direct-call
-  onSubmit = (arg) => {
-    // Form submit path
-    if (arg && typeof arg.preventDefault === "function") {
-      arg.preventDefault();
-      const e = arg;
+  onSubmit = (inputs) => {
+    const { I_A, L_m, rho_ohm_m, X_r_m } = inputs || {};
 
-      this.setState({ submitting: true, error: null }, () => {
-        try {
-          const fd = new FormData(e.target);
-
-          const sourceType = fd.get("sourceType") || "";
-          const I = Number(fd.get("I") || 0);
-          const IUnit = fd.get("IUnit") || "A";
-          const rho = Number(fd.get("rho") || 0);
-          const rhoUnit = fd.get("rhoUnit") || "ohm_m";
-          const spacing = Number(fd.get("spacing") || 0);
-          const spacingUnit = fd.get("spacingUnit") || "m";
-          const pipelineDepth = Number(fd.get("pipelineDepth") || 0);
-          const pipelineDepthUnit = fd.get("pipelineDepthUnit") || "m";
-          const anodeDepth = Number(fd.get("anodeDepth") || 0);
-          const anodeDepthUnit = fd.get("anodeDepthUnit") || "m";
-
-          // Validation
-          if (
-            !sourceType ||
-            !(I > 0) ||
-            !(rho > 0) ||
-            !(pipelineDepth >= 0) ||
-            !(anodeDepth >= 0)
-          ) {
-            this.setState({
-              submitting: false,
-              error: "Please fill all required fields with valid values.",
-              activeTab: "results",
-            });
-            return;
-          }
-          if (
-            (sourceType === "distributed" || sourceType === "shallow") &&
-            !(spacing > 0)
-          ) {
-            this.setState({
-              submitting: false,
-              error: "Anode spacing s is required for the selected source type.",
-              activeTab: "results",
-            });
-            return;
-          }
-
-          // Convert to SI
-          const I_SI = currentToA(I, IUnit);
-          const rho_SI = resistivityToOhmM(rho, rhoUnit);
-          const s_SI =
-            sourceType === "distributed" || sourceType === "shallow"
-              ? lengthToM(spacing, spacingUnit)
-              : 0;
-          const pipeDepth_SI = lengthToM(pipelineDepth, pipelineDepthUnit);
-          const anodeDepth_SI = lengthToM(anodeDepth, anodeDepthUnit);
-
-          const inputs = {
-            sourceType,
-            I,
-            IUnit,
-            rho,
-            rhoUnit,
-            spacing,
-            spacingUnit,
-            pipelineDepth,
-            pipelineDepthUnit,
-            anodeDepth,
-            anodeDepthUnit,
-          };
-
-          const calc = computeVoltageGradient({
-            sourceType,
-            I: I_SI,
-            rho: rho_SI,
-            spacing: s_SI,
-            pipelineDepth: pipeDepth_SI,
-            anodeDepth: anodeDepth_SI,
-          });
-          // distanceSeries for History charts: x_m -> d, Vm -> value
-          const distanceSeries = Array.isArray(calc?.data)
-            ? calc.data.map((pt) => ({ d: Number(pt.x_m || 0), value: Number(pt.Vm || 0) }))
-            : [];
-          const results = { ...calc, distanceSeries };
-
-          this.setState({
-            submitting: false,
-            results,
-            savedInputs: inputs,
-            error: null,
-            activeTab: "results",
-          });
-        } catch (err) {
-          this.setState({
-            submitting: false,
-            error: err?.message || "Calculation failed",
-          });
-        }
-      });
-      return;
-    }
-
-    // Direct-call path (old pattern)
-    const formInputs = arg || {};
-    const {
-      sourceType,
-      I,
-      IUnit,
-      rho,
-      rhoUnit,
-      spacing,
-      spacingUnit,
-      pipelineDepth,
-      pipelineDepthUnit,
-      anodeDepth,
-      anodeDepthUnit,
-    } = formInputs;
-
-    if (
-      !sourceType ||
-      !(I > 0) ||
-      !(rho > 0) ||
-      !(pipelineDepth >= 0) ||
-      !(anodeDepth >= 0)
-    ) {
+    if (!(Number(I_A) > 0) || !(Number(L_m) > 0) || !(Number(rho_ohm_m) > 0)) {
       this.setState({
-        error: "Please fill all required fields with valid values.",
-        activeTab: "results",
-      });
-      return;
-    }
-    if (
-      (sourceType === "distributed" || sourceType === "shallow") &&
-      !(spacing > 0)
-    ) {
-      this.setState({
-        error: "Anode spacing s is required for the selected source type.",
+        error:
+          "Please provide positive values for current, anode length, and soil resistivity.",
         activeTab: "results",
       });
       return;
     }
 
-    const I_SI = currentToA(I, IUnit);
-    const rho_SI = resistivityToOhmM(rho, rhoUnit);
-    const s_SI =
-      sourceType === "distributed" || sourceType === "shallow"
-        ? lengthToM(spacing, spacingUnit)
-        : 0;
-    const pipeDepth_SI = lengthToM(pipelineDepth, pipelineDepthUnit);
-    const anodeDepth_SI = lengthToM(anodeDepth, anodeDepthUnit);
-
-    const calc = computeVoltageGradient({
-      sourceType,
-      I: I_SI,
-      rho: rho_SI,
-      spacing: s_SI,
-      pipelineDepth: pipeDepth_SI,
-      anodeDepth: anodeDepth_SI,
+    const results = computeVoltageGradient({
+      I_A: Number(I_A),
+      L_m: Number(L_m),
+      rho_ohm_m: Number(rho_ohm_m),
+      X_r_m:
+        X_r_m === null || X_r_m === undefined || X_r_m === ""
+          ? null
+          : Number(X_r_m),
     });
-    const distanceSeries = Array.isArray(calc?.data)
-      ? calc.data.map((pt) => ({ d: Number(pt.x_m || 0), value: Number(pt.Vm || 0) }))
-      : [];
-    const results = { ...calc, distanceSeries };
 
     this.setState({
       results,
-      savedInputs: formInputs,
+      savedInputs: {
+        I_A: Number(I_A),
+        L_m: Number(L_m),
+        rho_ohm_m: Number(rho_ohm_m),
+        X_r_m:
+          X_r_m === null || X_r_m === undefined || X_r_m === ""
+            ? ""
+            : Number(X_r_m),
+      },
       error: null,
       activeTab: "results",
+      submitting: false,
     });
   };
 
@@ -219,19 +77,34 @@ export default class VoltageGradientPage extends React.Component {
   downloadResultsCsv = () => {
     const { results } = this.state || {};
     if (!results) return;
+
     const rows = [
       ["metric", "value", "unit"],
-      ["Vm_max",  Number(results.Vm_max  || 0), "V/m"],
-      ["Vm_pipe", Number(results.Vm_pipe || 0), "V/m"],
-      ["V_pipe",  Number(results.V_pipe  || 0), "V"],
-      ["d_pipe",  Number(results.d_pipe  || 0), "m"],
+      ["I", results.inputs?.I_A ?? "", "A"],
+      ["L", results.inputs?.L_m ?? "", "m"],
+      ["rho", results.inputs?.rho_ohm_m ?? "", "Ω·m"],
+      ["Xr", results.X_r_m ?? "", "m"],
+      ["Vr_max", results.Vr_max ?? "", "V"],
+      ["Vr_at_Xr", results.Vr_at_Xr ?? "", "V"],
+      ["Vr_perA_at_Xr", results.Vr_perA_at_Xr ?? "", "V/A"],
     ];
-    const csv  = rows.map(r => r.map(c => `"${String(c ?? "").replaceAll('"','""')}"`).join(",")).join("\n");
+
+    const csv = rows
+      .map((r) =>
+        r
+          .map((c) => `"${String(c ?? "").replaceAll('"', '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "voltage-gradient-results.csv";
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    a.href = url;
+    a.download = "voltage-gradient-results.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -239,8 +112,8 @@ export default class VoltageGradientPage extends React.Component {
 
   InfoCard = () => (
     <ModuleCard
-      title="Voltage Gradient"
-      subtitle="Potential/gradient around anodes"
+      title="Voltage Gradient Around a Vertical Anode"
+      subtitle="Step 2: Calculate voltage rise Vᵣ at any point Xᵣ from the anode"
       actions={
         <div className="flex items-center gap-2">
           <button
@@ -254,10 +127,15 @@ export default class VoltageGradientPage extends React.Component {
         </div>
       }
     >
-      <div className="text-sm text-gray-700 dark:text-gray-300">
+      <div className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
         <p>
-          Supports distributed, shallow, and point sources. Converts all inputs
-          to SI and returns gradient/potential vs. depth and spacing.
+          The module uses the classical vertical rod equation to compute
+          voltage rise in the earth with respect to remote earth.
+        </p>
+        <p>
+          Step 4: It plots voltage rise per ampere (V/A) versus distance on a
+          logarithmic scale from 0.1&nbsp;m to 100&nbsp;m, similar to the sample
+          chart in the design notes.
         </p>
       </div>
     </ModuleCard>
@@ -266,33 +144,27 @@ export default class VoltageGradientPage extends React.Component {
   render() {
     const { submitting, results, error, activeTab, savedInputs } = this.state;
 
-    // ✅ Header Save Bar (under the banner). Captures the right pane so PDF shows charts (no raw series numbers).
     const headerActions = (
       <HeaderSaveBar
-        moduleKey="voltage_gradient_calc"
-        moduleLabel="Voltage Gradient"
+        moduleKey="voltage_gradient_module"
+        moduleLabel="Voltage Gradient Module"
         inputs={savedInputs}
         results={results}
         captureRef={this.captureRef}
-        formulaName="Voltage Gradient"
+        formulaName="Voltage Gradient Module"
         modulePath="/pages/voltage-gradient"
         buildName={({ inputs, project }) => {
-          const t   = inputs?.sourceType || "—";
-          const I   = inputs?.I != null ? `${inputs.I} ${inputs.IUnit || ""}`.trim() : "—";
-          const rho = inputs?.rho != null ? `${inputs.rho} ${inputs.rhoUnit || ""}`.trim() : "—";
-          const s   = inputs?.spacing != null ? `${inputs.spacing} ${inputs.spacingUnit || ""}`.trim() : "—";
-          return `${project?.name || "Default"} • ${t} • I=${I} • ρ=${rho} • s=${s}`;
+          const I = inputs?.I_A ?? "—";
+          const L = inputs?.L_m ?? "—";
+          const rho = inputs?.rho_ohm_m ?? "—";
+          return `${project?.name || "Default"} • I=${I} A • L=${L} m • ρ=${rho} Ω·m`;
         }}
       />
     );
 
     return (
       <CalculatorPanel
-        header={
-          <div className="mb-6">
-
-          </div>
-        }
+        header={<div className="mb-6" />}
         headerActions={headerActions}
         left={
           <div>
@@ -302,7 +174,6 @@ export default class VoltageGradientPage extends React.Component {
               </div>
             ) : null}
 
-            {/* Works with both event-submit and direct object submit */}
             <VoltageGradientForm
               onSubmit={this.onSubmit}
               submitting={submitting}
@@ -312,7 +183,6 @@ export default class VoltageGradientPage extends React.Component {
           </div>
         }
         right={
-          // 📸 Everything here is included in the exported PDF image (charts over raw series numbers)
           <div className="space-y-4" ref={this.captureRef}>
             <this.InfoCard />
             <Tabs
@@ -323,7 +193,9 @@ export default class VoltageGradientPage extends React.Component {
               activeKey={activeTab}
               onChange={this.setTab}
             />
-            {activeTab === "results" && <VoltageGradientResults results={results} />}
+            {activeTab === "results" && (
+              <VoltageGradientResults results={results} />
+            )}
             {activeTab === "reference" && <VoltageGradientReference />}
           </div>
         }

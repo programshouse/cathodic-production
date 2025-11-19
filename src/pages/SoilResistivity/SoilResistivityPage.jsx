@@ -30,13 +30,7 @@ function InfoCard({ onReset, onCsv }) {
         </div>
       )}
     >
-      <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Wenner / Four-Point:  ρ_a = 2π a R
-Schlumberger:        ρ_a = (π * (L^2 - l^2) / l) * R   (common field approximation)
 
-Notes:
-• Use equal electrode spacing for Wenner/Four-Point (a).
-• Schlumberger uses current half-spacing (L) and potential half-spacing (l).
-• Output reported in Ω·m (SI).`}</pre>
     </ModuleCard>
   );
 }

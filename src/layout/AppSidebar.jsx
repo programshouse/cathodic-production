@@ -50,10 +50,10 @@ const navItems = [
   { name: "Circuit Resistance Module",                icon: <MdCable />,               path: "/pages/circuit-resistance" },              // 7
   { name: "Galvanic Anode System Calculation",        icon: <MdBatteryChargingFull />, path: "/pages/galvanic-anode" },                  // 8
   { name: "Impressed Current System Calculation",     icon: <MdBolt />,                path: "/pages/impressed-current" },               // 9
-  { name: "Resistor Sizing",                          icon: <MdTune />,                path: "/pages/resistor-sizing" },                 // 10
+  { name: "Resistor Sizing",                          icon: <MdTune />,                path: "/pages/Variable-Resistor-Shunt" },         // 10
   { name: "Attenuation & Pipeline Potential profile", icon: <MdTimeline />,            path: "/pages/attenuation" },                     // 11
   { name: "Voltage Gradient",                         icon: <MdShowChart />,           path: "/pages/voltage-gradient" },                // 12
-  { name: "Rectifier Sizing",icon: <MdTune />,                path: "/pages/Variable-Resistor-Shunt" },
+
   // Extra modules after the main 12
   // { name: "Interference Calculation",                 icon: <MdWifiTethering />,       path: "/pages/interference" },
   // { name: "Solar Sizing",                             icon: <MdSolarPower />,          path: "/pages/solar-sizing" },

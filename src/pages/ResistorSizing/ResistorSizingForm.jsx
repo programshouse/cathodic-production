@@ -1,25 +1,28 @@
 import React, { useState } from "react";
 import SectionCard from "../../components/ui/SectionCard";
-import { Label, Help, Select, NumberInput } from "../../components/ui/FormControls";
+import {
+  Label,
+  Help,
+  NumberInput,
+} from "../../components/ui/FormControls";
 import ResetPill from "../../components/ui/ResetPill";
 import PrimaryButton from "../../components/ui/PrimaryButton";
 
-export default function ResistorSizingForm({ onSubmit, submitting, onReset, initialValues = {}, title = "Rectifier Sizing" }) {
-  // Rectifier sizing inputs
-  const [I_req, setIreq] = useState(initialValues.I_required_value ?? "");
-  const [I_unit, setIunit] = useState(initialValues.I_required_unit || "A");
-  const [R_circuit, setRcircuit] = useState(initialValues.R_circuit_ohm ?? "");
-  const [E_native, setEnative] = useState(initialValues.E_native_value ?? "");
-  const [E_native_unit, setEnativeUnit] = useState(initialValues.E_native_unit || "V");
-  const [E_protect, setEprotect] = useState(initialValues.E_protect_value ?? "");
-  const [E_protect_unit, setEprotectUnit] = useState(initialValues.E_protect_unit || "V");
+export default function ResistorSizingForm({
+  onSubmit,
+  submitting,
+  onReset,
+  initialValues = {},
+  title = "Variable Resistor Sizing (CP)",
+}) {
+  // 3 inputs only – like the HTML tool
+  const [I_design, setIdesign] = useState(initialValues.I_design_A ?? "");
+  const [V_drop, setVdrop] = useState(initialValues.V_drop_V ?? "");
   const [SF, setSF] = useState(initialValues.safety_factor ?? "");
 
   const handleReset = () => {
-    setIreq(""); setIunit("A");
-    setRcircuit("");
-    setEnative(""); setEnativeUnit("V");
-    setEprotect(""); setEprotectUnit("V");
+    setIdesign("");
+    setVdrop("");
     setSF("");
     onReset?.();
   };
@@ -27,10 +30,8 @@ export default function ResistorSizingForm({ onSubmit, submitting, onReset, init
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit?.({
-      I_required_value: Number(I_req), I_required_unit: I_unit,
-      R_circuit_ohm: Number(R_circuit),
-      E_native_value: Number(E_native), E_native_unit,
-      E_protect_value: Number(E_protect), E_protect_unit,
+      I_design_A: Number(I_design),
+      V_drop_V: Number(V_drop),
       safety_factor: Number(SF),
     });
   };
@@ -40,8 +41,13 @@ export default function ResistorSizingForm({ onSubmit, submitting, onReset, init
       <div className="relative overflow-hidden rounded-2xl">
         <div className="absolute inset-0 bg-gradient-to-r from-brand-600 via-brand-500 to-brand-400 opacity-90" />
         <div className="relative px-5 py-5 md:px-7 md:py-6">
-          <h2 className="text-white text-xl md:text-2xl font-semibold tracking-tight">{title}</h2>
-          <p className="text-brand-50/90 text-sm md:text-base mt-1">Enter required current, circuit resistance, native and protection potentials, and safety factor.</p>
+          <h2 className="text-white text-xl md:text-2xl font-semibold tracking-tight">
+            {title}
+          </h2>
+          <p className="text-brand-50/90 text-sm md:text-base mt-1">
+            Enter design current, desired voltage drop, and power safety
+            factor to size the variable resistor.
+          </p>
         </div>
       </div>
     </div>
@@ -51,59 +57,83 @@ export default function ResistorSizingForm({ onSubmit, submitting, onReset, init
     <form onSubmit={handleSubmit} className="space-y-6">
       <Header />
 
-      <SectionCard title="Inputs" actions={<ResetPill onClick={handleReset} />}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label required>Required Current</Label>
-            <div className="flex">
-              <NumberInput value={I_req} onChange={(e)=>setIreq(e.target.value)} inputMode="decimal" step="any" min="0" required className="rounded-r-none border-r-0" placeholder="e.g. 20" />
-              <Select value={I_unit} onChange={(e)=>setIunit(e.target.value)} className="w-24 rounded-l-none">
-                <option value="A">A</option>
-                <option value="mA">mA</option>
-              </Select>
-            </div>
-            <Help>I_required</Help>
+      {/* === Formulas box (like the original HTML tool) === */}
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm md:text-base shadow-sm dark:bg-slate-900 dark:border-slate-700">
+        <p className="font-semibold text-slate-900 dark:text-slate-50">
+          Formulas Used:
+        </p>
+
+        <div className="my-2 h-px bg-slate-200 dark:bg-slate-700" />
+
+        <div className="space-y-1.5 text-slate-700 dark:text-slate-200">
+          <div className="flex flex-wrap gap-x-1">
+            <span className="font-semibold">Nominal Resistance (R):</span>
+            <span>R = V / I</span>
           </div>
 
+          <div className="flex flex-wrap gap-x-1">
+            <span className="font-semibold">Power Dissipation (P):</span>
+            <span>P = I² × R</span>
+          </div>
+        </div>
+      </div>
+
+      {/* === Inputs card – only 3 inputs like the image === */}
+      <SectionCard
+        title="Inputs"
+        actions={<ResetPill onClick={handleReset} />}
+      >
+        <div className="space-y-4">
+          {/* Design Current */}
           <div>
-            <Label required>Total Circuit Resistance (Ω)</Label>
-            <NumberInput value={R_circuit} onChange={(e)=>setRcircuit(e.target.value)} inputMode="decimal" step="any" min="0" required placeholder="e.g. 1.2" />
-            <Help>R_circuit</Help>
+            <Label required>Design Current (I) in Amperes</Label>
+            <NumberInput
+              value={I_design}
+              onChange={(e) => setIdesign(e.target.value)}
+              inputMode="decimal"
+              step="any"
+              min="0"
+              required
+              placeholder="e.g. 87"
+            />
+            <Help>I (A)</Help>
           </div>
 
+          {/* Desired Voltage Drop */}
           <div>
-            <Label required>Native Potential (E_native)</Label>
-            <div className="flex">
-              <NumberInput value={E_native} onChange={(e)=>setEnative(e.target.value)} inputMode="decimal" step="any" className="rounded-r-none border-r-0" placeholder="e.g. -0.85" />
-              <Select value={E_native_unit} onChange={(e)=>setEnativeUnit(e.target.value)} className="w-24 rounded-l-none">
-                <option value="V">V</option>
-                <option value="mV">mV</option>
-              </Select>
-            </div>
-            <Help>E_native (pipe native)</Help>
+            <Label required>Desired Voltage Drop (V) in Volts</Label>
+            <NumberInput
+              value={V_drop}
+              onChange={(e) => setVdrop(e.target.value)}
+              inputMode="decimal"
+              step="any"
+              min="0"
+              required
+              placeholder="e.g. 89"
+            />
+            <Help>V (Volts)</Help>
           </div>
 
+          {/* Power Safety Factor */}
           <div>
-            <Label required>Protection Potential (E_protect)</Label>
-            <div className="flex">
-              <NumberInput value={E_protect} onChange={(e)=>setEprotect(e.target.value)} inputMode="decimal" step="any" className="rounded-r-none border-r-0" placeholder="e.g. -1.1" />
-              <Select value={E_protect_unit} onChange={(e)=>setEprotectUnit(e.target.value)} className="w-24 rounded-l-none">
-                <option value="V">V</option>
-                <option value="mV">mV</option>
-              </Select>
-            </div>
-            <Help>E_protect</Help>
-          </div>
-
-          <div>
-            <Label required>Safety Factor</Label>
-            <NumberInput value={SF} onChange={(e)=>setSF(e.target.value)} inputMode="decimal" step="any" min="1" required placeholder="e.g. 1.25" />
-            <Help>Applies to both I and V ratings</Help>
+            <Label required>Power Safety Factor</Label>
+            <NumberInput
+              value={SF}
+              onChange={(e) => setSF(e.target.value)}
+              inputMode="decimal"
+              step="any"
+              min="1"
+              required
+              placeholder="e.g. 28"
+            />
+            <Help>Multiplier for resistor power rating</Help>
           </div>
         </div>
 
         <div className="mt-4">
-          <PrimaryButton type="submit" disabled={!!submitting}>{submitting ? "Calculating..." : "Calculate Rectifier Sizing"}</PrimaryButton>
+          <PrimaryButton type="submit" disabled={!!submitting}>
+            {submitting ? "Calculating..." : "Calculate"}
+          </PrimaryButton>
         </div>
       </SectionCard>
     </form>

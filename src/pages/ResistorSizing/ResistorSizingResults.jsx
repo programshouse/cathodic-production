@@ -1,57 +1,76 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
-import ResultValue from "../../components/ui/ResultValue";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 export default function ResistorSizingResults({ results }) {
-  if (!results) return (
-    <ModuleCard title="Results" subtitle="Run a calculation to see rectifier ratings.">
-      <div className="text-sm text-gray-500">No results yet.</div>
-    </ModuleCard>
-  );
+  if (!results)
+    return (
+      <ModuleCard
+        title="Results"
+        subtitle="Run a calculation to see resistor sizing."
+      >
+        <div className="text-sm text-gray-500">No results yet.</div>
+      </ModuleCard>
+    );
 
-  const { V_required = 0, V_driving = 0, I_rectifier = 0, V_rectifier = 0, P_rectifier = 0 } = results || {};
-  const allRows = [
-    { Label: "Driving Voltage", Value: Number(V_driving)||0, Unit: "V" },
-    { Label: "Required Voltage", Value: Number(V_required)||0, Unit: "V" },
-    { Label: "Rectifier Current Rating", Value: Number(I_rectifier)||0, Unit: "A" },
-    { Label: "Rectifier Voltage Rating", Value: Number(V_rectifier)||0, Unit: "V" },
-    { Label: "Required Power", Value: Number(P_rectifier)||0, Unit: "W" },
-  ];
-  const filename = "rectifier_sizing_results.csv";
-  const powerData = [
-    { name: "Power", Power: Number(P_rectifier) || 0 },
-  ];
+  const {
+    R_nominal = 0,
+    R_min = 0,
+    R_max = 0,
+    P_required = 0,
+    P_recommended = 0,
+  } = results || {};
 
-  const formula = "Vreq = I·R + |Eprotect − Enative|; Irated = I·SF; Vrated = Vreq·SF; P = Vreq·I";
+  const safetyFactor = results?.inputs?.safety_factor;
+
+  // Formatting helper
+  const fmt = (v, digits = 3) =>
+    Number(v || 0).toLocaleString(undefined, {
+      maximumFractionDigits: digits,
+      minimumFractionDigits: 0,
+    });
 
   return (
     <div className="space-y-4">
       <ModuleCard
-        title="Key Results"
-        subtitle={<span className="inline-flex items-center gap-2"><span className="text-xs uppercase tracking-wide text-gray-500">Formula</span><span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border text-gray-700 dark:text-gray-300">{formula}</span></span>}
+        title="Results"
+        subtitle="Variable resistor sizing according to CP equations."
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <ResultValue label="Driving Voltage" value={Number(V_driving)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Required Voltage" value={Number(V_required)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Rectifier Current Rating" value={Number(I_rectifier)||0} unit="A" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Rectifier Voltage Rating" value={Number(V_rectifier)||0} unit="V" precision={3} csvData={allRows} csvFilename={filename} />
-          <ResultValue label="Required Power" value={Number(P_rectifier)||0} unit="W" precision={3} csvData={allRows} csvFilename={filename} />
-        </div>
-      </ModuleCard>
+        <div className="space-y-2 text-sm md:text-base">
+          {/* Nominal Resistance */}
+          <div className="rounded-md bg-slate-100 dark:bg-slate-800 px-3 py-2 flex flex-wrap gap-1">
+            <span className="font-semibold text-brand-700 dark:text-brand-300">
+              Nominal Resistance (R = V / I):
+            </span>
+            <span>{fmt(R_nominal)} Ω</span>
+          </div>
 
-      <ModuleCard title="Power" subtitle="Rectifier requirement">
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={powerData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis tickFormatter={(v)=>`${v}`} />
-              <Tooltip formatter={(v)=>[`${Number(v).toFixed(3)} W`,`Power`]} />
-              <Legend />
-              <Line type="monotone" dataKey="Power" stroke="#2563eb" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          {/* Adjustable Range */}
+          <div className="rounded-md bg-slate-100 dark:bg-slate-800 px-3 py-2 flex flex-wrap gap-1">
+            <span className="font-semibold text-brand-700 dark:text-brand-300">
+              Recommended Adjustable Range:
+            </span>
+            <span>
+              {fmt(R_min)} to {fmt(R_max)} Ω
+            </span>
+          </div>
+
+          {/* Required Power Dissipation */}
+          <div className="rounded-md bg-slate-100 dark:bg-slate-800 px-3 py-2 flex flex-wrap gap-1">
+            <span className="font-semibold text-brand-700 dark:text-brand-300">
+              Required Power Dissipation (P = I² × R):
+            </span>
+            <span>{fmt(P_required)} Watts</span>
+          </div>
+
+          {/* Recommended Power Rating with SF */}
+          <div className="rounded-md bg-slate-100 dark:bg-slate-800 px-3 py-2 flex flex-wrap gap-1">
+            <span className="font-semibold text-brand-700 dark:text-brand-300">
+              {`Recommended Resistor Power Rating (with safety factor${
+                safetyFactor ? ` of ${fmt(safetyFactor, 2)}` : ""
+              }):`}
+            </span>
+            <span>{fmt(P_recommended)} Watts</span>
+          </div>
         </div>
       </ModuleCard>
     </div>

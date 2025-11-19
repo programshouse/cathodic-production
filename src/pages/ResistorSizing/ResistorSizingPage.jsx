@@ -1,14 +1,13 @@
-// /src/pages/resistor-sizing/ResistorSizingPage.jsx
 import React from "react";
+
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import ModuleCard from "../../components/ui/ModuleCard";
 import Tabs from "../../components/ui/Tabs";
-import ResetPill from "../../components/ui/ResetPill";
 import HeaderSaveBar from "../../components/ui/HeaderSaveBar";
 
 import ResistorSizingForm from "./ResistorSizingForm";
 import ResistorSizingResults from "./ResistorSizingResults";
-import { computeRectifierSizing, toAmps } from "./utils";
+import { computeVariableResistorSizing } from "./utils";
 
 export default class ResistorSizingPage extends React.Component {
   constructor(props) {
@@ -24,69 +23,34 @@ export default class ResistorSizingPage extends React.Component {
   }
 
   onSubmit = (raw) => {
-    const {
-      I_required_value, I_required_unit,
-      R_circuit_ohm,
-      E_native_value, E_native_unit,
-      E_protect_value, E_protect_unit,
-      safety_factor,
-    } = raw || {};
+    const { I_design_A, V_drop_V, safety_factor } = raw || {};
 
-    if (!(Number(I_required_value) > 0) || !(Number(R_circuit_ohm) >= 0) || !(Number(safety_factor) >= 1)) {
-      this.setState({ error: "Provide required current, circuit resistance, and safety factor (>=1)." });
+    if (
+      !(Number(I_design_A) > 0) ||
+      !(Number(V_drop_V) > 0) ||
+      !(Number(safety_factor) >= 1)
+    ) {
+      this.setState({
+        error:
+          "Provide design current (>0), desired voltage drop (>0), and safety factor (>=1).",
+      });
       return;
     }
 
-    const I_required_A = toAmps(I_required_value, I_required_unit);
-
     const inputs = {
-      I_required_value, I_required_unit,
-      R_circuit_ohm,
-      E_native_value, E_native_unit,
-      E_protect_value, E_protect_unit,
+      I_design_A,
+      V_drop_V,
       safety_factor,
     };
 
-    const results = computeRectifierSizing({
-      I_required_A,
-      R_circuit_ohm: Number(R_circuit_ohm || 0),
-      E_native_input: Number(E_native_value || 0),
-      E_native_unit,
-      E_protect_input: Number(E_protect_value || 0),
-      E_protect_unit,
+    const results = computeVariableResistorSizing({
+      I_design_A: Number(I_design_A || 0),
+      V_drop_V: Number(V_drop_V || 0),
       safety_factor: Number(safety_factor || 1),
     });
 
-    // Build a chart series for History: key rectifier ratings
-    const V_required = Number(results.V_required || 0);
-    const V_driving = Number(results.V_driving || 0);
-    const I_rectifier = Number(results.I_rectifier || 0);
-    const V_rectifier = Number(results.V_rectifier || 0);
-    const P_rectifier = Number(results.P_rectifier || 0);
-    const chartSeries = {
-      labels: [
-        "V_driving",
-        "V_required",
-        "I_rectifier",
-        "V_rectifier",
-        "P_rectifier",
-      ],
-      series: [
-        {
-          name: "Value",
-          data: [
-            V_driving,
-            V_required,
-            I_rectifier,
-            V_rectifier,
-            P_rectifier,
-          ],
-        },
-      ],
-    };
-
     this.setState({
-      results: { ...results, chartSeries },
+      results,
       savedInputs: inputs,
       error: null,
       activeTab: "results",
@@ -94,18 +58,23 @@ export default class ResistorSizingPage extends React.Component {
   };
 
   onResetAll = () => {
-    this.setState({ results: null, error: null, savedInputs: null, activeTab: "results" });
+    this.setState({
+      results: null,
+      error: null,
+      savedInputs: null,
+      activeTab: "results",
+    });
   };
 
   setTab = (key) => this.setState({ activeTab: key });
 
   render() {
     const { submitting, results, error, savedInputs, activeTab } = this.state;
-    const pageTitle = 'Rectifier Sizing';
+    const pageTitle = "Variable Resistor Sizing Calculator (CP)";
 
     const headerActions = (
       <HeaderSaveBar
-        moduleKey="rectifier_sizing_calc"
+        moduleKey="variable_resistor_sizing_calc"
         moduleLabel={pageTitle}
         inputs={savedInputs}
         results={results}
@@ -113,10 +82,10 @@ export default class ResistorSizingPage extends React.Component {
         formulaName={pageTitle}
         modulePath="/pages/Variable-Resistor-Shunt"
         buildName={({ inputs, project }) => {
-          const i = inputs?.I_required_value ? `${inputs.I_required_value} ${inputs.I_required_unit || ''}`.trim() : "—";
-          const r = inputs?.R_circuit_ohm ?? "—";
+          const i = inputs?.I_design_A ?? "—";
+          const v = inputs?.V_drop_V ?? "—";
           const sf = inputs?.safety_factor ?? "—";
-          return `${project?.name || "Default"} • I=${i} • R=${r}Ω • SF=${sf}`;
+          return `${project?.name || "Default"} • I=${i}A • V=${v}V • SF=${sf}`;
         }}
       />
     );
@@ -143,33 +112,12 @@ export default class ResistorSizingPage extends React.Component {
         }
         right={
           <div className="space-y-4" ref={this.captureRef}>
-            <ModuleCard
-              title="Equations"
-              subtitle="Sizing relations"
-              actions={<span className="text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-900">Formula</span>}
-            >
-              <pre className="text-sm md:text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-100 dark:border-gray-800">{`Required output voltage:
-V_required = (I_required × R_circuit) + V_driving
-Where V_driving = |E_protect − E_native|
-
-Rectifier current rating:
-I_rectifier = I_required × Safety Factor
-
-Rectifier voltage rating:
-V_rectifier = V_required × Safety Factor
-
-Required power:
-P_rectifier = V_required × I_required`}</pre>
-              <div className="mt-2">
-                <ResetPill onClick={this.onResetAll} />
-              </div>
-            </ModuleCard>
-
             <Tabs
               items={[{ key: "results", label: "Results" }]}
               activeKey={activeTab}
               onChange={this.setTab}
             />
+
             {activeTab === "results" && (
               <div className="space-y-4">
                 <ResistorSizingResults results={results} />

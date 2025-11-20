@@ -43,13 +43,39 @@ export const useLibStore = create((set, get) => ({
 fetchlibrary: async (params = {}) => {
   set({ loading: true, error: null });
   try {
-    const res = await api.get("", { headers: authHeaders(), params });
+    const query = { ...params };
+    if (query.folderId) {
+      query.folder_id = query.folderId;
+      delete query.folderId;
+    }
+    if (query.subFolderId) {
+      query.sub_folder_id = query.subFolderId;
+      delete query.subFolderId;
+    }
+
+    const res = await api.get("", { headers: authHeaders(), params: query });
     const payload = res?.data ?? {};
-    const list =
+
+    // Normalise list from various possible envelopes
+    const rawList =
       Array.isArray(payload.data) ? payload.data :
       Array.isArray(payload.items) ? payload.items :
       Array.isArray(payload.result) ? payload.result :
       Array.isArray(payload) ? payload : [];
+
+    // If API returns folders with nested `files` arrays, flatten to a file list
+    let list = rawList;
+    if (Array.isArray(rawList) && rawList.length && rawList[0] && Array.isArray(rawList[0].files)) {
+      list = rawList.flatMap((folder) => {
+        const files = Array.isArray(folder.files) ? folder.files : [];
+        return files.map((file) => ({
+          ...file,
+          // Ensure folder_id is set and carry folder name for convenience
+          folder_id: file.folder_id ?? folder.id,
+          folder_name: folder.name ?? folder.title ?? undefined,
+        }));
+      });
+    }
     const page = payload?.meta?.current_page ?? params.page ?? 1;
     const hasMore = !!payload?.links?.next || (payload?.meta?.current_page ?? 1) < (payload?.meta?.last_page ?? 1);
     set({ library: list, loading: false, page, hasMore });
@@ -60,7 +86,7 @@ fetchlibrary: async (params = {}) => {
   }
 },
 
-postlibrary: async ({ file, title = "", notes = "" }) => {
+postlibrary: async ({ file, title = "", notes = "", category = "", description = "", folderId, subFolderId }) => {
   if (!file) throw new Error("postlibrary: 'file' is required");
   set({ loading: true, error: null });
   try {
@@ -68,6 +94,10 @@ postlibrary: async ({ file, title = "", notes = "" }) => {
     form.append("file", file);
     if (title) form.append("title", title);
     if (notes) form.append("notes", notes);
+    if (category) form.append("category", category);
+    if (description) form.append("description", description);
+    if (folderId) form.append("folder_id", folderId);
+    if (subFolderId) form.append("sub_folder_id", subFolderId);
 
     const res = await api.post("", form, {
       headers: { ...authHeaders(), "Content-Type": "multipart/form-data" },

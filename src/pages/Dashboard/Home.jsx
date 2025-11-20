@@ -62,10 +62,10 @@ export default function Home() {
 
   return (
     <section title="Dashboard | CP">
-      <PageHeader
+      {/* <PageHeader
         title="Professional Cathodic Protection Calculator"
         description=""
-      />
+      /> */}
 
       {/* MAIN CARDS */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mx-4">

@@ -9,60 +9,64 @@ import {
   MdBatteryChargingFull,   // Galvanic Anode
   MdLandscape,             // Groundbed Resistance
   MdBolt,                  // Impressed Current
-  MdWifiTethering,         // Interference
   MdScience,               // Soil Resistivity
-  MdSolarPower,            // Solar Sizing
   MdGridOn,                // Surface Area
-  MdBlurCircular,          // Tank MMO Ribbon
   MdTune,                  // Variable/Shunt Sizing & Resistors
   MdShowChart,             // Voltage Gradient
-  MdPowerSettingsNew       // Rectifier Ratings (extra)
+  MdPeople,                // View Users (admin)
 } from "react-icons/md";
 import { ChevronDownIcon } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
+import { useAuthStore } from "../stores/useAuthStore";
 
 /**
  * Sidebar order EXACTLY as in the image:
- *  1  Surface Area Calculation
- *  2  Current Density Calculation
- *  3  Coating Factors Calculation
- *  4  Soil Resistivity
- *  5  Barnes Layer Resistivity
- *  6  Groundbed Resistance
- *  7  Circuit Resistance Module
- *  8  Galvanic Anode System Calculation
- *  9  Impressed Current System Calculation
- * 10  Resistor Sizing
- * 11  Attenuation & Pipeline Potential profile
- * 12  Voltage Gradient
- *
- * Extra modules (Interference, Solar, Tank MMO, Variable/Shunt, Rectifier)
- * are added AFTER these in a logical order.
+ * ...
+ * "View Users" is NOT in this list anymore – it is a fixed bottom item for admins.
  */
 const navItems = [
-  { name: "Surface Area Calculation",                 icon: <MdGridOn />,              path: "/pages/surface-area" },                    // 1
-  { name: "Current Density Calculation",              icon: <MdWaterDrop />,           path: "/pages/current-density" },                 // 2
-  { name: "Coating Factors Calculation",              icon: <MdFormatPaint />,         path: "/pages/coating-factors" },                 // 3
-  { name: "Soil Resistivity",                         icon: <MdScience />,             path: "/pages/soil-resistivity" },                // 4
-  { name: "Barnes Layer Resistivity",                 icon: <MdLayers />,              path: "/pages/barnes-layer" },                    // 5
-  { name: "Groundbed Resistance",                     icon: <MdLandscape />,           path: "/pages/groundbed-resistance" },            // 6
-  { name: "Circuit Resistance Module",                icon: <MdCable />,               path: "/pages/circuit-resistance" },              // 7
-  { name: "Galvanic Anode System Calculation",        icon: <MdBatteryChargingFull />, path: "/pages/galvanic-anode" },                  // 8
-  { name: "Impressed Current System Calculation",     icon: <MdBolt />,                path: "/pages/impressed-current" },               // 9
-  { name: "Resistor Sizing",                          icon: <MdTune />,                path: "/pages/Variable-Resistor-Shunt" },         // 10
-  { name: "Attenuation & Pipeline Potential profile", icon: <MdTimeline />,            path: "/pages/attenuation" },                     // 11
-  { name: "Voltage Gradient",                         icon: <MdShowChart />,           path: "/pages/voltage-gradient" },                // 12
-
-  // Extra modules after the main 12
-  // { name: "Interference Calculation",                 icon: <MdWifiTethering />,       path: "/pages/interference" },
-  // { name: "Solar Sizing",                             icon: <MdSolarPower />,          path: "/pages/solar-sizing" },
-  // { name: "Tank MMO Anode Sizing",                    icon: <MdBlurCircular />,        path: "/pages/tank-mmo-sizing" },
-  // { name: "Rectifier Ratings",                        icon: <MdPowerSettingsNew />,    path: "/pages/rectifier-ratings" }, 
+  { name: "Surface Area Calculation",                 icon: <MdGridOn />,    path: "/pages/surface-area" },            // 1
+  { name: "Current Density Calculation",              icon: <MdWaterDrop />, path: "/pages/current-density" },         // 2
+  { name: "Coating Factors Calculation",              icon: <MdFormatPaint />, path: "/pages/coating-factors" },       // 3
+  { name: "Soil Resistivity",                         icon: <MdScience />,   path: "/pages/soil-resistivity" },        // 4
+  { name: "Barnes Layer Resistivity",                 icon: <MdLayers />,    path: "/pages/barnes-layer" },            // 5
+  { name: "Groundbed Resistance",                     icon: <MdLandscape />, path: "/pages/groundbed-resistance" },    // 6
+  { name: "Circuit Resistance Module",                icon: <MdCable />,     path: "/pages/circuit-resistance" },      // 7
+  { name: "Galvanic Anode System Calculation",        icon: <MdBatteryChargingFull />, path: "/pages/galvanic-anode" },// 8
+  { name: "Impressed Current System Calculation",     icon: <MdBolt />,      path: "/pages/impressed-current" },       // 9
+  { name: "Resistor Sizing",                          icon: <MdTune />,      path: "/pages/Variable-Resistor-Shunt" }, // 10
+  { name: "Attenuation & Pipeline Potential profile", icon: <MdTimeline />,  path: "/pages/attenuation" },             // 11
+  { name: "Voltage Gradient",                         icon: <MdShowChart />, path: "/pages/voltage-gradient" },        // 12
 ];
 
 const AppSidebar = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+
+  // 🔴 Same admin logic as your RequireAdmin in App.jsx
+  const { admin, access_token } = useAuthStore();
+
+  const roleStr =
+    (typeof admin?.role === "string" && admin.role.toLowerCase()) ||
+    (typeof admin?.type === "string" && admin.type.toLowerCase()) ||
+    (typeof admin?.role_name === "string" && admin.role_name.toLowerCase());
+
+  const rolesArr = Array.isArray(admin?.roles)
+    ? admin.roles.map((r) => String(r).toLowerCase())
+    : [];
+
+  const permsArr = Array.isArray(admin?.permissions)
+    ? admin.permissions.map((p) => String(p).toLowerCase())
+    : [];
+
+  const isAdmin =
+    !!access_token &&
+    (admin?.is_admin === true ||
+      roleStr === "admin" ||
+      rolesArr.includes("admin") ||
+      permsArr.includes("admin") ||
+      permsArr.includes("manage_library") ||
+      permsArr.includes("library:manage"));
 
   const location = useLocation();
   const [openSubmenu, setOpenSubmenu] = useState(null);
@@ -113,11 +117,9 @@ const AppSidebar = () => {
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Logo */}
       <div className="flex py-8 lg:justify-center">
-        <Link
-          to="/"
-          className="block w-full sm:w-auto"
-        >
+        <Link to="/" className="block w-full sm:w-auto">
           <div className="flex sm:justify-start justify-center">
             {isExpanded || isHovered || isMobileOpen ? (
               <>
@@ -149,10 +151,12 @@ const AppSidebar = () => {
         </Link>
       </div>
 
+      {/* Nav */}
       <nav className="no-scrollbar flex flex-col overflow-y-auto pb-6 duration-300 ease-linear">
-        <ul className="flex flex-col gap-4">
+        {/* Main items take available space */}
+        <ul className="flex flex-col gap-4 flex-1">
           {navItems.map((nav, index) => (
-            <li key={`${nav.name}-${nav.path}`}>
+            <li key={`${nav.name}-${nav.path || index}`}>
               {nav.subItems ? (
                 <button
                   onClick={() => handleSubmenuToggle(index)}
@@ -194,6 +198,33 @@ const AppSidebar = () => {
             </li>
           ))}
         </ul>
+
+        {/* Fixed bottom: View Users (admin only) */}
+        {isAdmin && (
+          <div className="mt-4">
+            <Link
+              to="/pages/users"
+              className={`
+                group flex items-center gap-3 rounded-xl px-3 py-2
+                border border-white/40 bg-white/10
+                shadow-lg shadow-black/30
+                text-white
+                hover:bg-white/20 hover:border-white
+                transition-colors
+                ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}
+              `}
+            >
+              <span className="menu-item-icon-size text-white">
+                <MdPeople />
+              </span>
+              {(isExpanded || isHovered || isMobileOpen) && (
+                <span className="menu-item-text text-white font-semibold">
+                  View Users
+                </span>
+              )}
+            </Link>
+          </div>
+        )}
 
         {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null}
       </nav>

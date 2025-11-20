@@ -4,6 +4,8 @@ import PageLayout from "../../components/ui/PageLayout";
 import PageHeader from "../../components/ui/PageHeader";
 import CardBox from "../../components/ui/CardBox";
 import { useLibStore } from "../../stores/useLibStore";
+import { useLibraryFoldersStore } from "../../stores/useLibraryFoldersStore";
+import { useLibrarySubFoldersStore } from "../../stores/useLibrarySubFoldersStore";
 import { toast } from "react-toastify";
 
 export default function LibPage() {
@@ -17,28 +19,66 @@ export default function LibPage() {
     showlibrary,
   } = useLibStore();
 
+  const {
+    libraryFolders,
+    getAll: getAllLibraryFolders,
+    create: createLibraryFolder,
+  } = useLibraryFoldersStore();
+
+  const {
+    librarySubFolders,
+    getAll: getAllLibrarySubFolders,
+    create: createLibrarySubFolder,
+  } = useLibrarySubFoldersStore();
+
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState(null); // selected item for details modal
   const [query, setQuery] = useState("");
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [selectedSubFolderId, setSelectedSubFolderId] = useState(null);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newSubFolderName, setNewSubFolderName] = useState("");
   const fileInputRef = useRef(null);
 
   // Initial fetch once
   useEffect(() => {
     fetchlibrary().catch(() => {});
+    getAllLibraryFolders().catch(() => {});
+    getAllLibrarySubFolders().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(() => {
-    if (!query) return library || [];
+    let list = library || [];
+
+    // If no folder/subfolder and no search, don't show anything yet
+    if (!selectedFolderId && !selectedSubFolderId && !query) {
+      return [];
+    }
+
+    if (selectedFolderId) {
+      list = list.filter(
+        (f) => Number(f.folder_id) === Number(selectedFolderId)
+      );
+    }
+
+    if (selectedSubFolderId) {
+      list = list.filter(
+        (f) => Number(f.sub_folder_id) === Number(selectedSubFolderId)
+      );
+    }
+
+    if (!query) return list;
+
     const q = query.toLowerCase();
-    return (library || []).filter((f) =>
+    return list.filter((f) =>
       [f.title, f.filename, f.mime, f.mimetype, f.notes, f.url, f.path]
         .filter(Boolean)
         .some((x) => String(x).toLowerCase().includes(q))
     );
-  }, [library, query]);
+  }, [library, query, selectedFolderId, selectedSubFolderId]);
 
   const latest5 = useMemo(() => (filtered || []).slice(0, 5), [filtered]);
 
@@ -62,7 +102,13 @@ export default function LibPage() {
     try {
       // Upload sequentially to keep backend happy (or use Promise.all if API tolerates)
       for (const file of files) {
-        await postlibrary({ file, title, notes });
+        await postlibrary({
+          file,
+          title,
+          notes,
+          folderId: selectedFolderId,
+          subFolderId: selectedSubFolderId,
+        });
       }
       await fetchlibrary();
       toast.update(t, {
@@ -126,6 +172,100 @@ export default function LibPage() {
                   placeholder="Short description or tags (e.g. #attenuation #design)"
                   className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
                 />
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Folder</label>
+                <select
+                  value={selectedFolderId || ""}
+                  onChange={(e) => {
+                    const v = e.target.value || null;
+                    setSelectedFolderId(v ? Number(v) : null);
+                    setSelectedSubFolderId(null);
+                  }}
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                >
+                  <option value="">— No folder —</option>
+                  {(libraryFolders || []).map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name || `Folder #${f.id}`}
+                    </option>
+                  ))}
+                </select>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    placeholder="New folder name"
+                    className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const name = newFolderName.trim();
+                      if (!name) return;
+                      const created = await createLibraryFolder(name);
+                      setNewFolderName("");
+                      if (created?.id) setSelectedFolderId(created.id);
+                    }}
+                    className="text-xs px-3 py-2 rounded-xl border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
+                  >
+                    + Folder
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sub Folder</label>
+                <select
+                  value={selectedSubFolderId || ""}
+                  onChange={(e) => {
+                    const v = e.target.value || null;
+                    setSelectedSubFolderId(v ? Number(v) : null);
+                  }}
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                >
+                  <option value="">— No sub folder —</option>
+                  {(librarySubFolders || [])
+                    .filter((sf) =>
+                      selectedFolderId
+                        ? Number(sf.folder_id) === Number(selectedFolderId)
+                        : true
+                    )
+                    .map((sf) => (
+                      <option key={sf.id} value={sf.id}>
+                        {sf.name || `Sub Folder #${sf.id}`}
+                      </option>
+                    ))}
+                </select>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={newSubFolderName}
+                    onChange={(e) => setNewSubFolderName(e.target.value)}
+                    placeholder="New sub folder name"
+                    className="flex-1 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const name = newSubFolderName.trim();
+                      if (!name || !selectedFolderId) return;
+                      const created = await createLibrarySubFolder(
+                        name,
+                        selectedFolderId
+                      );
+                      setNewSubFolderName("");
+                      if (created?.id) setSelectedSubFolderId(created.id);
+                    }}
+                    className="text-xs px-3 py-2 rounded-xl border bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800"
+                  >
+                    + Sub
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -239,7 +379,11 @@ export default function LibPage() {
             <tbody>
               {(!filtered || filtered.length === 0) && !loading && (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-gray-500 dark:text-gray-400">No files match.</td>
+                  <td colSpan={5} className="py-6 text-center text-gray-500 dark:text-gray-400">
+                    {selectedFolderId || selectedSubFolderId || query
+                      ? "No files match."
+                      : "Select a folder (and optional sub folder) to view its files."}
+                  </td>
                 </tr>
               )}
 

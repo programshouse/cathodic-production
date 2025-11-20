@@ -1,10 +1,9 @@
+// src/components/layout/Header.jsx
 import { useState } from "react";
 import { ThemeToggleButton } from "../common/ThemeToggleButton";
 import NotificationDropdown from "./NotificationDropdown";
 import UserDropdown from "./UserDropdown";
-import { Link } from "react-router";
-
-// Define the interface for the props
+import { Link } from "react-router-dom";
 
 const Header = ({ onClick, onToggle }) => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -13,12 +12,19 @@ const Header = ({ onClick, onToggle }) => {
     setApplicationMenuOpen(!isApplicationMenuOpen);
   };
 
+  // Static contact info used in the top bar
+  const PHONE = "+201113718843";
+  const EMAIL = "islam.saleh3030@gmail.com";
+  const LINKEDIN = "https://www.linkedin.com/in/islam-saleh-714323aa/";
+
   return (
-    <header className="sticky top-0 flex w-full bg-white border-gray-200 z-99999 dark:border-gray-800 dark:bg-gray-900 lg:border-b">
-      <div className="flex flex-col items-center justify-between grow lg:flex-row lg:px-6">
-        <div className="flex items-center justify-between w-full gap-2 px-3 py-3 border-b border-gray-200 dark:border-gray-800 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
+    <header className="sticky top-0 z-99999 flex w-full border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 lg:border-b">
+      <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
+        {/* LEFT + CENTER: logo, title, search (desktop) */}
+        <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 dark:border-gray-800 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
+          {/* mobile sidebar toggle */}
           <button
-            className="block w-10 h-10 text-gray-500 lg:hidden dark:text-gray-400"
+            className="block h-10 w-10 text-gray-500 dark:text-gray-400 lg:hidden"
             onClick={onToggle}
           >
             {/* Hamburger Icon */}
@@ -37,26 +43,12 @@ const Header = ({ onClick, onToggle }) => {
                 fill="currentColor"
               />
             </svg>
-            <svg
-              className="hidden"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M6.21967 7.28131C5.92678 6.98841 5.92678 6.51354 6.21967 6.22065C6.51256 5.92775 6.98744 5.92775 7.28033 6.22065L11.999 10.9393L16.7176 6.22078C17.0105 5.92789 17.4854 5.92788 17.7782 6.22078C18.0711 6.51367 18.0711 6.98855 17.7782 7.28144L13.0597 12L17.7782 16.7186C18.0711 17.0115 18.0711 17.4863 17.7782 17.7792C17.4854 18.0721 17.0105 18.0721 16.7176 17.7792L11.999 13.0607L7.28033 17.7794C6.98744 18.0722 6.51256 18.0722 6.21967 17.7794C5.92678 17.4865 5.92678 17.0116 6.21967 16.7187L10.9384 12L6.21967 7.28131Z"
-                fill="currentColor"
-              />
-            </svg>
-            {/* Cross Icon */}
           </button>
+
+          {/* desktop sidebar toggle button */}
           <button
             onClick={onClick}
-            className="items-center justify-center hidden w-10 h-10 text-gray-500 border-gray-200 rounded-lg z-99999 dark:border-gray-800 lg:flex dark:text-gray-400 lg:h-11 lg:w-11 lg:border"
+            className="z-99999 hidden h-11 w-11 items-center justify-center rounded-lg border border-gray-200 text-gray-500 dark:border-gray-800 dark:text-gray-400 lg:flex"
           >
             <svg
               className="hidden fill-current lg:block"
@@ -75,18 +67,27 @@ const Header = ({ onClick, onToggle }) => {
             </svg>
           </button>
 
-          <Link to="/" className="lg:hidden">
-            <img className="dark:hidden" src="./images/logo.png" alt="logoos" />
+          {/* logo + product name (mobile) */}
+          <Link to="/" className="flex items-center gap-2 lg:hidden">
             <img
-              className="hidden dark:block"
-              src="./images/logo/logoos-dark.svg"
-              alt="logoos"
+              className="h-7 dark:hidden"
+              src="./images/logo.png"
+              alt="logo"
             />
+            <img
+              className="hidden h-7 dark:block"
+              src="./images/logo/logoos-dark.svg"
+              alt="logo dark"
+            />
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Cathodic Protection Calculator
+            </span>
           </Link>
 
+          {/* application menu (3 dots / grid) mobile */}
           <button
             onClick={toggleApplicationMenu}
-            className="flex items-center justify-center w-10 h-10 text-gray-700 rounded-lg z-99999 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
+            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
           >
             <svg
               width="24"
@@ -104,53 +105,121 @@ const Header = ({ onClick, onToggle }) => {
             </svg>
           </button>
 
-          <div className="hidden lg:block">
-            <form action="https://formbold.com/s/unique_form_id" method="POST">
-              <div className="relative">
-                <button className="absolute -translate-y-1/2 left-4 top-1/2">
-                  <svg
-                    className="fill-gray-500 dark:fill-gray-400"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
-                      fill=""
-                    />
-                  </svg>
-                </button>
-                <input
-                  type="text"
-                  placeholder="Search or type command..."
-                  className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
-                />
+          {/* desktop title + search */}
+          <div className="hidden flex-1 items-center justify-between lg:flex">
+            {/* brand name on the left */}
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100"
+            >
+              <img
+                className="h-7 dark:hidden"
+                src="./images/logo.png"
+                alt="logo"
+              />
+              <img
+                className="hidden h-7 dark:block"
+                src="./images/logo/logoos-dark.svg"
+                alt="logo dark"
+              />
+              <span className="hidden md:inline-block">
+                Cathodic Protection Calculator
+              </span>
+            </Link>
 
-                <button className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
-                  <span> ⌘ </span>
-                  <span> K </span>
-                </button>
-              </div>
-            </form>
+            {/* search bar */}
+            <div className="ml-6 flex-1 max-w-xl">
+              <form
+                action="https://formbold.com/s/unique_form_id"
+                method="POST"
+              >
+                <div className="relative">
+                  <button className="absolute left-4 top-1/2 -translate-y-1/2">
+                    <svg
+                      className="fill-gray-500 dark:fill-gray-400"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                        d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
+                        fill=""
+                      />
+                    </svg>
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Search or type command..."
+                    className="h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                  />
+
+                  <button className="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
+                    <span> ⌘ </span>
+                    <span> K </span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
+
+        {/* RIGHT: contact info + controls */}
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } items-center justify-between w-full gap-4 px-5 py-4 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
+          } w-full items-center justify-between gap-4 px-5 py-4 shadow-theme-md lg:flex lg:justify-end lg:px-0 lg:shadow-none`}
         >
-          <div className="flex items-center gap-2 2xsm:gap-3">
-            {/* <!-- Dark Mode Toggler --> */}
-            {/* <ThemeToggleButton /> */}
-            {/* <!-- Dark Mode Toggler --> */}
-            <NotificationDropdown />
-            {/* <!-- Notification Menu Area --> */}
+          {/* contact info (desktop only, like in mockup) */}
+          <div className="hidden items-center gap-6 text-xs text-gray-600 dark:text-gray-300 lg:flex lg:mr-auto">
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-gray-800 dark:text-gray-100">
+                Phone:
+              </span>
+              <a
+                href={`tel:${PHONE.replace(/[^\d+]/g, "")}`}
+                className="text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400"
+              >
+                {PHONE}
+              </a>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-gray-800 dark:text-gray-100">
+                Email:
+              </span>
+              <a
+                href={`mailto:${EMAIL}`}
+                className="truncate text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400"
+              >
+                {EMAIL}
+              </a>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium text-gray-800 dark:text-gray-100">
+                LinkedIn:
+              </span>
+              <a
+                href={LINKEDIN}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400"
+              >
+                View profile
+              </a>
+            </div>
           </div>
-          {/* <!-- User Area --> */}
+
+          {/* controls: theme, notifications, user */}
+          <div className="flex items-center gap-2 2xsm:gap-3">
+            {/* Theme toggle if you want it visible */}
+            {/* <ThemeToggleButton /> */}
+            <NotificationDropdown />
+          </div>
           <UserDropdown />
         </div>
       </div>
@@ -159,3 +228,4 @@ const Header = ({ onClick, onToggle }) => {
 };
 
 export default Header;
+

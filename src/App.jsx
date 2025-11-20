@@ -1,7 +1,9 @@
+// /src/App.jsx
 import React, { useEffect } from "react";
 import { Navigate, createBrowserRouter, RouterProvider } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuthStore } from "./stores/useAuthStore";
+
 import SignIn from "./pages/AuthPages/Signin";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
@@ -10,10 +12,12 @@ import Card from "./components/ui/card.jsx";
 import AppLayout from "./layout/AppLayout";
 import Home from "./pages/Dashboard/Home";
 import HistoryPage from "./pages/History/HistoryPage";
-// remove old LibPage import
+
 import LibraryBrowse from "./pages/Lib/LibraryBrowse";
 import LibraryManage from "./pages/Lib/LibraryManage";
 import LibraryCreate from "./pages/Lib/LibraryCreate";
+import LibrarySubFoldersPage from "./pages/Lib/LibrarySubFoldersPage";
+import LibraryFilesPage from "./pages/Lib/LibraryFilesPage";
 import FreeConsultation from "./pages/Booking/FreeConsultation.jsx";
 
 import Form from "./pages/Form";
@@ -34,17 +38,19 @@ import BarnesLayerPage from "./pages/BarnesLayer/BarnesLayerPage";
 import SolarSizingPage from "./pages/SolarSizing/SolarSizingPage";
 import TankMMOPage from "./pages/TankMMOSizing/TankMMOPage";
 
+// 🔵 Users page (admin only)
+import UsersPage from "./pages/Users/UsersPage"; // make sure this file exists
+
 /* ---------------- Guards ---------------- */
 const GuestOnlyRoute = ({ children }) => {
   const { access_token } = useAuthStore();
   return !access_token ? children : <Navigate to="/" replace />;
 };
 
-// Inline admin guard
+// Inline admin guard (your existing logic)
 const RequireAdmin = ({ children }) => {
   const { admin, access_token, isInitialized } = useAuthStore();
 
-  // App() already blocks on isInitialized; but keep a quick guard
   if (!isInitialized) return <div />;
 
   const roleStr =
@@ -101,8 +107,23 @@ const router = createBrowserRouter([
       { path: "/pages/barnes-layer", element: <BarnesLayerPage /> },
       { path: "/pages/history", element: <HistoryPage /> },
 
+      // 🔵 Admin-only Users
+      {
+        path: "/pages/users",
+        element: (
+          <RequireAdmin>
+            <UsersPage />
+          </RequireAdmin>
+        ),
+      },
+
       /* ===== Library ===== */
-      { path: "/library", element: <LibraryBrowse /> }, // everyone
+      { path: "/library", element: <LibraryBrowse /> }, // folders list (everyone)
+      { path: "/library/folder/:folderId", element: <LibrarySubFoldersPage /> },
+      {
+        path: "/library/folder/:folderId/subfolder/:subFolderId",
+        element: <LibraryFilesPage />,
+      },
       {
         path: "/admin/library",
         element: (

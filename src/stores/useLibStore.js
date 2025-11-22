@@ -163,4 +163,27 @@ deletelibrary: async (id) => {
   }
 },
 
+updatelibrary: async (id, payload = {}) => {
+  if (!id) { const msg = "updateLibrary: missing id"; set({ error: msg }); throw new Error(msg); }
+  set({ loading: true, error: null });
+  try {
+    const res = await api.patch(`${id}`, payload, {
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+    });
+    try {
+      await get().fetchlibrary();
+    } catch (err) {
+      throw new Error(
+        `File updated but failed to refresh library: ${err?.message || err}`
+      );
+    }
+    set({ loading: false });
+    return res?.data?.data ?? res?.data ?? true;
+  } catch (err) {
+    const msg = extractApiError(err) || "Failed to update file";
+    set({ error: msg, loading: false });
+    throw new Error(msg);
+  }
+},
+
 }));

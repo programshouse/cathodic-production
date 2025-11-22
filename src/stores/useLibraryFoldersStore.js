@@ -101,6 +101,36 @@ export const useLibraryFoldersStore = create((set, get) => ({
     }
   },
 
+  async update(id, name) {
+    if (!id) throw new Error("update: 'id' is required");
+    if (!name || !String(name).trim()) {
+      const msg = "Library folder name is required";
+      set({ error: msg });
+      toast.error(msg);
+      throw new Error(msg);
+    }
+    set({ loading: true, error: null });
+    try {
+      const res = await api.patch(
+        `Main-folders/${id}`,
+        { name: String(name).trim() },
+        { headers: { "Content-Type": "application/json" } }
+      );
+      const updated = normalizeItem(res?.data);
+      try {
+        await get().getAll();
+      } catch {}
+      set({ loading: false });
+      toast.success("Library folder updated");
+      return updated;
+    } catch (err) {
+      const msg = errMsg(err, "Failed to update library folder");
+      set({ error: msg, loading: false });
+      toast.error(msg);
+      throw err;
+    }
+  },
+
   async delete(id) {
     if (!id) throw new Error("delete: 'id' is required");
     set({ loading: true, error: null });

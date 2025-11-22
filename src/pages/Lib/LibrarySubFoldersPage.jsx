@@ -12,8 +12,13 @@ export default function LibrarySubFoldersPage() {
   const { folderId } = useParams();
   const navigate = useNavigate();
 
-  const { libraryFolders, getAll: getAllLibraryFolders } = useLibraryFoldersStore();
-  const { librarySubFolders, getAll: getAllLibrarySubFolders, delete: deleteLibrarySubFolder } = useLibrarySubFoldersStore();
+  const { libraryFolders, getAll: getAllLibraryFolders } =
+    useLibraryFoldersStore();
+  const {
+    librarySubFolders,
+    getAll: getAllLibrarySubFolders,
+    delete: deleteLibrarySubFolder,
+  } = useLibrarySubFoldersStore();
   const { admin, isInitialized } = useAuthStore();
 
   useEffect(() => {
@@ -33,7 +38,10 @@ export default function LibrarySubFoldersPage() {
     (admin?.is_admin === true ||
       admin?.role?.toLowerCase?.() === "admin" ||
       (Array.isArray(admin?.roles) &&
-        admin.roles.map(String).map((r) => r.toLowerCase()).includes("admin")) ||
+        admin.roles
+          .map(String)
+          .map((r) => r.toLowerCase())
+          .includes("admin")) ||
       (Array.isArray(admin?.permissions) &&
         admin.permissions
           .map(String)
@@ -42,34 +50,49 @@ export default function LibrarySubFoldersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-4">
-      <div className="max-w-5xl mx-auto space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto space-y-4">
+        <div className="flex items-center justify-between gap-2">
           <PageHeader
             title={folder?.name || `Folder #${folderId}`}
             description="Choose a subfolder to browse its files."
           />
-          <Btn variant="neutral" size="xs" onClick={() => navigate("/library")}>
+          <Btn
+            variant="neutral"
+            size="xs"
+            onClick={() => navigate("/library")}
+          >
             ← Back to Folders
           </Btn>
         </div>
 
         <CardBox>
-          <div className="space-y-3">
+          {subFolders.length === 0 && (
+            <div className="text-sm text-gray-500">
+              No sub folders in this folder.
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {subFolders.map((sf) => (
               <div
                 key={sf.id}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm px-4 py-3 flex items-center justify-between"
+                className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition p-4 flex flex-col gap-3"
               >
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {sf.name || `Sub Folder #${sf.id}`}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900 group-hover:text-[#122A56]">
+                      {sf.name || `Sub Folder #${sf.id}`}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="mt-auto flex items-center gap-2">
                   <Btn
                     size="xs"
                     onClick={() =>
-                      navigate(`/library/folder/${folderId}/subfolder/${sf.id}`)
+                      navigate(
+                        `/library/folder/${folderId}/subfolder/${sf.id}`
+                      )
                     }
                   >
                     Show Files
@@ -78,8 +101,13 @@ export default function LibrarySubFoldersPage() {
                     <Btn
                       variant="danger"
                       size="xs"
+                      className="ml-auto"
                       onClick={() => {
-                        if (window.confirm("Delete this subfolder and its files?")) {
+                        if (
+                          window.confirm(
+                            "Delete this subfolder and its files?"
+                          )
+                        ) {
                           deleteLibrarySubFolder(sf.id).catch(() => {});
                         }
                       }}
@@ -90,12 +118,6 @@ export default function LibrarySubFoldersPage() {
                 </div>
               </div>
             ))}
-
-            {subFolders.length === 0 && (
-              <div className="text-sm text-gray-500">
-                No sub folders in this folder.
-              </div>
-            )}
           </div>
         </CardBox>
       </div>

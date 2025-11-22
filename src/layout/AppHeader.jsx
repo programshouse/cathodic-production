@@ -44,11 +44,12 @@ const AppHeader = () => {
 
   return (
     <header className="sticky top-0 z-99999 flex w-full border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 lg:border-b">
-      <div className="flex grow flex-col items-center justify-between lg:flex-row lg:px-6">
+      <div className="flex grow flex-col lg:flex-row lg:px-6">
         {/* ROW 1: left icons / mobile controls */}
         <div className="flex w-full items-center justify-between gap-2 border-b border-gray-200 px-3 py-3 dark:border-gray-800 sm:gap-4 lg:justify-normal lg:border-b-0 lg:px-0 lg:py-4">
+          {/* Sidebar toggle */}
           <button
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 text-gray-500 dark:border-gray-800 dark:text-gray-400 lg:h-11 lg:w-11"
+            className="z-99999 flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 dark:border-gray-800 dark:text-gray-400 sm:h-10 sm:w-10 lg:h-11 lg:w-11"
             onClick={handleToggle}
             aria-label="Toggle Sidebar"
           >
@@ -87,10 +88,16 @@ const AppHeader = () => {
             )}
           </button>
 
+          {/* (Optional) Logo / Title placeholder */}
+          <div className="flex flex-1 items-center justify-center text-sm font-semibold text-gray-800 dark:text-gray-100 sm:justify-start">
+            <span className="truncate">CP Design Pro</span>
+          </div>
+
           {/* App menu (3-dots) on mobile */}
           <button
             onClick={toggleApplicationMenu}
-            className="z-99999 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
+            className="z-99999 flex h-9 w-9 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
+            aria-label="Open Header Menu"
           >
             <svg
               width="24"
@@ -107,18 +114,15 @@ const AppHeader = () => {
               />
             </svg>
           </button>
-
-          {/* (Optional) desktop search – currently disabled */}
-          <div className="hidden lg:block" />
         </div>
 
         {/* ROW 2: contact info + controls */}
         <div
           className={`${
             isApplicationMenuOpen ? "flex" : "hidden"
-          } w-full items-center justify-between gap-4 px-5 py-4 shadow-theme-md lg:flex lg:justify-end lg:px-0 lg:shadow-none`}
+          } w-full flex-col gap-3 px-4 py-3 shadow-theme-md lg:flex lg:flex-row lg:items-center lg:justify-end lg:gap-6 lg:px-0 lg:py-3 lg:shadow-none`}
         >
-          {/* Contact info (desktop only) */}
+          {/* Contact info – DESKTOP (horizontal) */}
           <div className="hidden items-center gap-6 text-xs text-gray-600 dark:text-gray-300 lg:mr-auto lg:flex">
             {/* Phones */}
             <div className="flex items-center gap-2">
@@ -180,11 +184,75 @@ const AppHeader = () => {
                 className="inline-flex items-center gap-1 text-blue-600 transition hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 View profile
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                  <path
+                    d="M3 9L9 3M5 3h4v4"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          {/* Contact info – MOBILE (stacked) */}
+          <div className="flex flex-col gap-2 text-xs text-gray-700 dark:text-gray-200 lg:hidden">
+            {/* Phones */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/60">
+              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Phone
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {PHONES.map((ph) => (
+                  <a
+                    key={ph}
+                    href={`tel:${ph.replace(/[^\d+]/g, "")}`}
+                    className="inline-flex items-center rounded-full border border-transparent bg-white px-2 py-0.5 text-[11px] font-medium shadow-sm transition hover:border-blue-200 hover:bg-blue-50 dark:bg-gray-900 dark:hover:bg-gray-700"
+                  >
+                    {ph}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Emails */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/60">
+              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Email
+              </span>
+              <div className="flex flex-col gap-1">
+                {EMAILS.map((em) => (
+                  <a
+                    key={em}
+                    href={`mailto:${em}`}
+                    className="truncate text-[11px] font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+                  >
+                    {em}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* LinkedIn */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800/60">
+              <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                LinkedIn
+              </span>
+              <a
+                href={LINKEDIN}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex items-center text-[11px] font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+              >
+                View profile
                 <svg
                   width="10"
                   height="10"
                   viewBox="0 0 12 12"
                   fill="none"
+                  className="ml-1"
                 >
                   <path
                     d="M3 9L9 3M5 3h4v4"
@@ -198,22 +266,22 @@ const AppHeader = () => {
             </div>
           </div>
 
-          {/* right controls: theme / notifications / user */}
-          <div className="flex items-center gap-2 2xsm:gap-3">
+          {/* right controls: theme / user / login */}
+          <div className="mt-1 flex items-center justify-between gap-2 2xsm:gap-3 lg:mt-0 lg:w-auto lg:justify-end">
             {/* <ThemeToggleButton /> */}
             {/* <NotificationDropdown /> */}
-          </div>
 
-          {access_token ? (
-            <UserDropdown />
-          ) : (
-            <Link
-              to="/signin"
-              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600"
-            >
-              Login
-            </Link>
-          )}
+            {access_token ? (
+              <UserDropdown />
+            ) : (
+              <Link
+                to="/signin"
+                className="ml-auto rounded-lg bg-brand-500 px-4 py-2 text-xs font-medium text-white transition hover:bg-brand-600 sm:text-sm"
+              >
+                Login
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </header>

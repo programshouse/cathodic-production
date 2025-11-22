@@ -59,7 +59,7 @@ export default function LibraryFilesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-4">
-      <div className="max-w-5xl mx-auto space-y-4">
+      <div className="max-w-1xl mx-auto space-y-4 px-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <PageHeader

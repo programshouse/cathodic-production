@@ -13,7 +13,11 @@ const CP_BLUE = "#122A56";
 export default function LibraryBrowse() {
   const { library, loading, error, fetchlibrary } = useLibStore();
   const { admin, isInitialized } = useAuthStore();
-  const { libraryFolders, getAll: getAllLibraryFolders, delete: deleteLibraryFolder } = useLibraryFoldersStore();
+  const {
+    libraryFolders,
+    getAll: getAllLibraryFolders,
+    delete: deleteLibraryFolder,
+  } = useLibraryFoldersStore();
 
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
@@ -29,7 +33,10 @@ export default function LibraryBrowse() {
     (admin?.is_admin === true ||
       admin?.role?.toLowerCase?.() === "admin" ||
       (Array.isArray(admin?.roles) &&
-        admin.roles.map(String).map((r) => r.toLowerCase()).includes("admin")) ||
+        admin.roles
+          .map(String)
+          .map((r) => r.toLowerCase())
+          .includes("admin")) ||
       (Array.isArray(admin?.permissions) &&
         admin.permissions
           .map(String)
@@ -48,7 +55,7 @@ export default function LibraryBrowse() {
 
   return (
     <div className="min-h-screen bg-gray-50 px-4">
-      <div className="mx-auto px-8 py-6 max-w-6xl">
+      <div className="mx-auto px-8 py-6 max-7-6xl">
         {/* Header + admin create button */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex-1" />
@@ -97,21 +104,34 @@ export default function LibraryBrowse() {
           </div>
         </CardBox>
 
-        {/* Folder list */}
+        {/* Folder cards grid */}
         <CardBox>
-          <div className="space-y-3">
+          {error && (
+            <div className="mb-3 rounded-lg border px-3 py-2 text-sm border-rose-200 bg-rose-50 text-rose-700">
+              {error}
+            </div>
+          )}
+
+          {(!filteredFolders || filteredFolders.length === 0) && !loading && (
+            <div className="text-sm text-gray-500">No folders found.</div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredFolders.map((folder) => (
               <div
                 key={folder.id}
-                className="rounded-2xl border border-gray-200 bg-white shadow-sm px-4 py-3 flex items-center justify-between"
+                className="group rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition p-4 flex flex-col gap-3"
               >
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {folder.name || `Folder #${folder.id}`}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900 group-hover:text-[#122A56]">
+                      {folder.name || `Folder #${folder.id}`}
+                    </div>
+      
                   </div>
-        
                 </div>
-                <div className="flex items-center gap-2">
+
+                <div className="mt-auto flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => navigate(`/library/folder/${folder.id}`)}
@@ -123,11 +143,15 @@ export default function LibraryBrowse() {
                     <button
                       type="button"
                       onClick={() => {
-                        if (window.confirm("Delete this folder and its subfolders/files?")) {
+                        if (
+                          window.confirm(
+                            "Delete this folder and its subfolders/files?"
+                          )
+                        ) {
                           deleteLibraryFolder(folder.id).catch(() => {});
                         }
                       }}
-                      className="text-xs px-3 py-1.5 rounded-full border border-rose-300 text-rose-700 hover:bg-rose-50"
+                      className="text-xs px-3 py-1.5 rounded-full border border-rose-300 text-rose-700 hover:bg-rose-50 ml-auto"
                     >
                       Delete
                     </button>
@@ -135,34 +159,9 @@ export default function LibraryBrowse() {
                 </div>
               </div>
             ))}
-
-            {(!filteredFolders || filteredFolders.length === 0) && !loading && (
-              <div className="text-sm text-gray-500">No folders found.</div>
-            )}
           </div>
         </CardBox>
       </div>
     </div>
   );
-}
-
-function Th({ children, className = "" }) {
-  return (
-    <th className={`py-4 px-4 text-xs font-semibold tracking-wide ${className}`}>
-      {children}
-    </th>
-  );
-}
-
-function Td({ children, className = "" }) {
-  return <td className={`py-3 px-4 align-top ${className}`}>{children}</td>;
-}
-
-function formatDateTime(s) {
-  if (!s) return "-";
-  try {
-    return new Date(s).toLocaleString();
-  } catch {
-    return s;
-  }
 }

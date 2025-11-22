@@ -12,16 +12,26 @@ export default function LibraryFilesPage() {
   const { folderId, subFolderId } = useParams();
   const navigate = useNavigate();
 
-  const { library, fetchlibrary, loading, error, deletelibrary, showlibrary } = useLibStore();
-  const { libraryFolders, getAll: getAllLibraryFolders } = useLibraryFoldersStore();
-  const { librarySubFolders, getAll: getAllLibrarySubFolders } = useLibrarySubFoldersStore();
+  const { library, fetchlibrary, loading, error, deletelibrary, showlibrary } =
+    useLibStore();
+  const { libraryFolders, getAll: getAllLibraryFolders } =
+    useLibraryFoldersStore();
+  const { librarySubFolders, getAll: getAllLibrarySubFolders } =
+    useLibrarySubFoldersStore();
   const { admin, isInitialized } = useAuthStore();
   const [preview, setPreview] = useState(null);
+
   useEffect(() => {
     getAllLibraryFolders().catch(() => {});
     getAllLibrarySubFolders().catch(() => {});
     fetchlibrary({ folderId, subFolderId }).catch(() => {});
-  }, [folderId, subFolderId, fetchlibrary, getAllLibraryFolders, getAllLibrarySubFolders]);
+  }, [
+    folderId,
+    subFolderId,
+    fetchlibrary,
+    getAllLibraryFolders,
+    getAllLibrarySubFolders,
+  ]);
 
   const folder = (libraryFolders || []).find(
     (f) => String(f.id) === String(folderId)
@@ -37,7 +47,10 @@ export default function LibraryFilesPage() {
     (admin?.is_admin === true ||
       admin?.role?.toLowerCase?.() === "admin" ||
       (Array.isArray(admin?.roles) &&
-        admin.roles.map(String).map((r) => r.toLowerCase()).includes("admin")) ||
+        admin.roles
+          .map(String)
+          .map((r) => r.toLowerCase())
+          .includes("admin")) ||
       (Array.isArray(admin?.permissions) &&
         admin.permissions
           .map(String)
@@ -51,7 +64,11 @@ export default function LibraryFilesPage() {
           <div className="flex-1">
             <PageHeader
               title={subFolder?.name || `Sub Folder #${subFolderId}`}
-              description={folder ? `Files in ${folder.name || `Folder #${folderId}`}` : "Files in selected sub folder."}
+              description={
+                folder
+                  ? `Files in ${folder.name || `Folder #${folderId}`}`
+                  : "Files in selected sub folder."
+              }
             />
           </div>
           <div className="flex gap-2">
@@ -93,82 +110,118 @@ export default function LibraryFilesPage() {
                 )}
                 {(!files || files.length === 0) && !loading && (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-gray-500">
+                    <td
+                      colSpan={4}
+                      className="py-6 text-center text-gray-500"
+                    >
                       No files in this sub folder.
                     </td>
                   </tr>
                 )}
-                {files.map((f, idx) => (
-                  <tr key={f.id} className={`border-b ${idx % 2 ? "bg-gray-50/60" : "bg-white"}`}>
-                    <td className="py-2 px-3">
-                      <div className="font-medium text-gray-900">
-                        {f.title || f.filename || "Untitled"}
-                      </div>
-                      <div className="text-[11px] text-gray-500 break-all">
-                        {f.url || f.path || f.file_path || ""}
-                      </div>
-                    </td>
-                    <td className="py-2 px-3 hidden md:table-cell">
-                      {f.category ? String(f.category) : "-"}
-                    </td>
-                    <td className="py-2 px-3 hidden md:table-cell">
-                      {f.created_at ? new Date(f.created_at).toLocaleString() : "-"}
-                    </td>
-                    <td className="py-2 px-3">
-                      <div className="flex items-center gap-2">
-                        {f.url && (
+                {files.map((f, idx) => {
+                  const filePathText = f.file_path || f.path || "";
+                  const hasFilePathUrl = /^https?:\/\//i.test(
+                    filePathText || ""
+                  );
+                  const displayText = f.url || filePathText || "";
+
+                  return (
+                    <tr
+                      key={f.id}
+                      className={`border-b ${
+                        idx % 2 ? "bg-gray-50/60" : "bg-white"
+                      }`}
+                    >
+                      <td className="py-2 px-3">
+                        <div className="font-medium text-gray-900">
+                          {f.title || f.filename || "Untitled"}
+                        </div>
+                      </td>
+                      <td className="py-2 px-3 hidden md:table-cell">
+                        {f.category ? String(f.category) : "-"}
+                      </td>
+                      <td className="py-2 px-3 hidden md:table-cell">
+                        {f.created_at
+                          ? new Date(f.created_at).toLocaleString()
+                          : "-"}
+                      </td>
+                      <td className="py-2 px-3">
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const hasFilePathUrlBtn =
+                              /^https?:\/\//i.test(filePathText || "");
+                            const rawUrl = f.url || null;
+                            const href = hasFilePathUrlBtn
+                              ? filePathText
+                              : rawUrl;
+                            if (!href) return null;
+                            return (
+                              <Btn
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                size="xs"
+                              >
+                                Open
+                              </Btn>
+                            );
+                          })()}
                           <Btn
-                            href={f.url}
-                            target="_blank"
-                            rel="noreferrer"
                             size="xs"
-                          >
-                            Open
-                          </Btn>
-                        )}
-                        <Btn
-                          size="xs"
-                          onClick={async () => {
-                            try {
-                              const item = await showlibrary(f.id);
-                              setPreview(item);
-                            } catch (e) {
-                              // eslint-disable-next-line no-alert
-                              window.alert(e?.message || "Failed to load file details");
-                            }
-                          }}
-                        >
-                          Show
-                        </Btn>
-                        {canManage && (
-                          <Btn
-                            variant="danger"
-                            size="xs"
-                            onClick={() => {
-                              if (window.confirm("Are you sure you want to delete this file?")) {
-                                deletelibrary(f.id).catch(() => {});
+                            onClick={async () => {
+                              try {
+                                const item = await showlibrary(f.id);
+                                setPreview(item);
+                              } catch (e) {
+                                // eslint-disable-next-line no-alert
+                                window.alert(
+                                  e?.message || "Failed to load file details"
+                                );
                               }
                             }}
                           >
-                            Delete
+                            Show
                           </Btn>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {canManage && (
+                            <Btn
+                              variant="danger"
+                              size="xs"
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    "Are you sure you want to delete this file?"
+                                  )
+                                ) {
+                                  deletelibrary(f.id).catch(() => {});
+                                }
+                              }}
+                            >
+                              Delete
+                            </Btn>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </CardBox>
+
         {preview && (
           <div className="fixed inset-0 z-40">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setPreview(null)} />
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setPreview(null)}
+            />
             <div className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 w-full md:w-[640px]">
               <div className="m-0 md:m-4 rounded-t-2xl md:rounded-2xl overflow-hidden border bg-white shadow-xl">
                 <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white">
                   <div className="text-sm font-semibold">
-                    {preview.title || preview.filename || `File #${preview.id}`}
+                    {preview.title ||
+                      preview.filename ||
+                      `File #${preview.id}`}
                   </div>
                   <button
                     type="button"
@@ -182,20 +235,31 @@ export default function LibraryFilesPage() {
                   <div className="flex gap-2">
                     <div className="w-28 text-[12px] text-gray-500">Title</div>
                     <div className="flex-1 text-[13px] text-gray-800 break-all">
-                      {preview.title || preview.filename || `File #${preview.id}`}
+                      {preview.title ||
+                        preview.filename ||
+                        `File #${preview.id}`}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <div className="w-28 text-[12px] text-gray-500">Uploaded</div>
+                    <div className="w-28 text-[12px] text-gray-500">
+                      Uploaded
+                    </div>
                     <div className="flex-1 text-[13px] text-gray-800 break-all">
-                      {preview.created_at ? new Date(preview.created_at).toLocaleString() : "-"}
+                      {preview.created_at
+                        ? new Date(preview.created_at).toLocaleString()
+                        : "-"}
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <div className="w-28 text-[12px] text-gray-500">URL</div>
                     <div className="flex-1 text-[13px] text-blue-600 break-all">
                       {preview.url ? (
-                        <a href={preview.url} target="_blank" rel="noreferrer" className="hover:underline">
+                        <a
+                          href={preview.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="hover:underline"
+                        >
                           {preview.url}
                         </a>
                       ) : (
@@ -204,14 +268,41 @@ export default function LibraryFilesPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <div className="w-28 text-[12px] text-gray-500">File Path</div>
-                    <div className="flex-1 text-[13px] text-gray-800 break-all">
-                      {preview.file_path || preview.path || "-"}
+                    <div className="w-28 text-[12px] text-gray-500">
+                      File Path
+                    </div>
+                    <div className="flex-1 text-[13px] break-all">
+                      {(() => {
+                        const filePathText =
+                          preview.file_path || preview.path || "";
+                        const hasFilePathUrl =
+                          /^https?:\/\//i.test(filePathText || "");
+                        if (!filePathText) return "-";
+                        if (hasFilePathUrl) {
+                          return (
+                            <a
+                              href={filePathText}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {filePathText}
+                            </a>
+                          );
+                        }
+                        return (
+                          <span className="text-gray-800">
+                            {filePathText}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   {preview.description && (
                     <div className="pt-2">
-                      <div className="text-[12px] text-gray-500 mb-1">Description</div>
+                      <div className="text-[12px] text-gray-500 mb-1">
+                        Description
+                      </div>
                       <div className="text-[13px] text-gray-800 whitespace-pre-wrap">
                         {preview.description}
                       </div>

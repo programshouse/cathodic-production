@@ -16,6 +16,8 @@ import HistoryPage from "./pages/History/HistoryPage";
 import LibraryBrowse from "./pages/Lib/LibraryBrowse";
 import LibraryManage from "./pages/Lib/LibraryManage";
 import LibraryCreate from "./pages/Lib/LibraryCreate";
+import LibraryCreateFolder from "./pages/Lib/LibraryCreateFolder";
+import LibraryCreateSubFolder from "./pages/Lib/LibraryCreateSubFolder";
 import LibrarySubFoldersPage from "./pages/Lib/LibrarySubFoldersPage";
 import LibraryFilesPage from "./pages/Lib/LibraryFilesPage";
 import FreeConsultation from "./pages/Booking/FreeConsultation.jsx";
@@ -134,6 +136,22 @@ const router = createBrowserRouter([
       },
       {
         path: "/admin/library/create",
+        element: (
+          <RequireAdmin>
+            <LibraryCreateFolder />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: "/admin/library/create/folder/:folderId",
+        element: (
+          <RequireAdmin>
+            <LibraryCreateSubFolder />
+          </RequireAdmin>
+        ),
+      },
+      {
+        path: "/admin/library/create/folder/:folderId/subfolder/:subFolderId",
         element: (
           <RequireAdmin>
             <LibraryCreate />

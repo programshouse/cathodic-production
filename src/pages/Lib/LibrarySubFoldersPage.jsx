@@ -6,13 +6,15 @@ import CardBox from "../../components/ui/CardBox";
 import Btn from "../../components/ui/Btn";
 import { useLibraryFoldersStore } from "../../stores/useLibraryFoldersStore";
 import { useLibrarySubFoldersStore } from "../../stores/useLibrarySubFoldersStore";
+import { useAuthStore } from "../../stores/useAuthStore";
 
 export default function LibrarySubFoldersPage() {
   const { folderId } = useParams();
   const navigate = useNavigate();
 
   const { libraryFolders, getAll: getAllLibraryFolders } = useLibraryFoldersStore();
-  const { librarySubFolders, getAll: getAllLibrarySubFolders } = useLibrarySubFoldersStore();
+  const { librarySubFolders, getAll: getAllLibrarySubFolders, delete: deleteLibrarySubFolder } = useLibrarySubFoldersStore();
+  const { admin, isInitialized } = useAuthStore();
 
   useEffect(() => {
     getAllLibraryFolders().catch(() => {});
@@ -25,6 +27,18 @@ export default function LibrarySubFoldersPage() {
   const subFolders = (librarySubFolders || []).filter(
     (sf) => String(sf.folder_id) === String(folderId)
   );
+
+  const canManage =
+    isInitialized &&
+    (admin?.is_admin === true ||
+      admin?.role?.toLowerCase?.() === "admin" ||
+      (Array.isArray(admin?.roles) &&
+        admin.roles.map(String).map((r) => r.toLowerCase()).includes("admin")) ||
+      (Array.isArray(admin?.permissions) &&
+        admin.permissions
+          .map(String)
+          .map((p) => p.toLowerCase())
+          .some((p) => p === "admin" || p === "manage_library")));
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-4">
@@ -50,7 +64,6 @@ export default function LibrarySubFoldersPage() {
                   <div className="text-sm font-semibold text-gray-900">
                     {sf.name || `Sub Folder #${sf.id}`}
                   </div>
-                  <div className="text-[11px] text-gray-500">ID: {sf.id}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Btn
@@ -61,6 +74,19 @@ export default function LibrarySubFoldersPage() {
                   >
                     Show Files
                   </Btn>
+                  {canManage && (
+                    <Btn
+                      variant="danger"
+                      size="xs"
+                      onClick={() => {
+                        if (window.confirm("Delete this subfolder and its files?")) {
+                          deleteLibrarySubFolder(sf.id).catch(() => {});
+                        }
+                      }}
+                    >
+                      Delete
+                    </Btn>
+                  )}
                 </div>
               </div>
             ))}

@@ -13,7 +13,8 @@ const CP_BLUE = "#122A56";
 export default function LibraryBrowse() {
   const { library, loading, error, fetchlibrary } = useLibStore();
   const { admin, isInitialized } = useAuthStore();
-  const { libraryFolders, getAll: getAllLibraryFolders } = useLibraryFoldersStore();
+  const { libraryFolders, getAll: getAllLibraryFolders, delete: deleteLibraryFolder } = useLibraryFoldersStore();
+
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
 
@@ -108,9 +109,7 @@ export default function LibraryBrowse() {
                   <div className="text-sm font-semibold text-gray-900">
                     {folder.name || `Folder #${folder.id}`}
                   </div>
-                  <div className="text-[11px] text-gray-500">
-                    ID: {folder.id}
-                  </div>
+        
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -120,6 +119,19 @@ export default function LibraryBrowse() {
                   >
                     Show
                   </button>
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm("Delete this folder and its subfolders/files?")) {
+                          deleteLibraryFolder(folder.id).catch(() => {});
+                        }
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-full border border-rose-300 text-rose-700 hover:bg-rose-50"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

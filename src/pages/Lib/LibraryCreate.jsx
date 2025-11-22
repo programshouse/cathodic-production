@@ -6,19 +6,19 @@ import { useLibStore } from "../../stores/useLibStore";
 import { useLibraryFoldersStore } from "../../stores/useLibraryFoldersStore";
 import { useLibrarySubFoldersStore } from "../../stores/useLibrarySubFoldersStore";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function LibraryCreate() {
   const { postlibrary, fetchlibrary, loading } = useLibStore();
-  const { libraryFolders, getAll: getAllLibraryFolders, create: createLibraryFolder } = useLibraryFoldersStore();
-  const { librarySubFolders, getAll: getAllLibrarySubFolders, create: createLibrarySubFolder } = useLibrarySubFoldersStore();
+  const { libraryFolders, getAll: getAllLibraryFolders } = useLibraryFoldersStore();
+  const { librarySubFolders, getAll: getAllLibrarySubFolders } = useLibrarySubFoldersStore();
+
+  const { folderId, subFolderId } = useParams();
 
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
-  const [selectedFolderId, setSelectedFolderId] = useState(null);
-  const [selectedSubFolderId, setSelectedSubFolderId] = useState(null);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [newSubFolderName, setNewSubFolderName] = useState("");
+  const [selectedFolderId, setSelectedFolderId] = useState(folderId || null);
+  const [selectedSubFolderId, setSelectedSubFolderId] = useState(subFolderId || null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function LibraryCreate() {
   useEffect(() => {
     getAllLibraryFolders().catch(() => {});
     getAllLibrarySubFolders().catch(() => {});
-  }, []);
+  }, [getAllLibraryFolders, getAllLibrarySubFolders]);
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -45,29 +45,14 @@ export default function LibraryCreate() {
   const doMultiUpload = async (files) => {
     const t = toast.loading(`Uploading ${files.length} file${files.length > 1 ? "s" : ""}…`);
     try {
-      let folderId = selectedFolderId;
-      let subFolderId = selectedSubFolderId;
-
-      // Create folder if needed
-      if (!folderId && newFolderName.trim()) {
-        const createdFolder = await createLibraryFolder(newFolderName.trim());
-        folderId = createdFolder?.id || folderId;
-      }
-
-      // Create subfolder if needed
-      if (!subFolderId && newSubFolderName.trim() && folderId) {
-        const createdSubFolder = await createLibrarySubFolder(newSubFolderName.trim(), folderId);
-        subFolderId = createdSubFolder?.id || subFolderId;
-      }
-
       // Loop through the files and upload each
       for (const file of files) {
         await postlibrary({
           file,
           title,
           notes,
-          folderId,
-          subFolderId,
+          folderId: selectedFolderId,
+          subFolderId: selectedSubFolderId,
         });
       }
 
@@ -82,8 +67,6 @@ export default function LibraryCreate() {
       // Reset the form
       setTitle("");
       setNotes("");
-      setNewFolderName("");
-      setNewSubFolderName("");
       navigate("/admin/library"); // Redirect after successful upload
     } catch (err) {
       toast.update(t, {
@@ -97,7 +80,10 @@ export default function LibraryCreate() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Upload Files" description="Add new design guides, standards, and reference files to your CP Library." />
+      <PageHeader
+        title="Upload Files"
+        description="Step 3 of 3 – upload files into the selected folder and subfolder."
+      />
 
       <CardBox>
         <div className="grid gap-6 lg:grid-cols-2">
@@ -132,7 +118,7 @@ export default function LibraryCreate() {
               </div>
             </div>
 
-            {/* Folder selection */}
+            {/* Folder selection (readonly, based on previous steps but still changeable) */}
             <div className="bg-white p-4 shadow-lg rounded-xl">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="flex flex-col gap-1">
@@ -171,32 +157,7 @@ export default function LibraryCreate() {
               </div>
             </div>
 
-            {/* New folder/subfolder creation */}
-            <div className="bg-white p-4 shadow-lg rounded-xl">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium">New Folder</label>
-                  <input
-                    type="text"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="Create a new folder"
-                    className="w-full border rounded-xl p-2 text-sm"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium">New Subfolder</label>
-                  <input
-                    type="text"
-                    value={newSubFolderName}
-                    onChange={(e) => setNewSubFolderName(e.target.value)}
-                    placeholder="Create a new subfolder"
-                    className="w-full border rounded-xl p-2 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
+            {/* No create here – creation is done in steps 1 and 2 */}
           </div>
 
           {/* File upload section */}

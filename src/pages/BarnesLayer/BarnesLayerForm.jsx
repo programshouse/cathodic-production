@@ -170,11 +170,11 @@ export default function BarnesLayerForm({
           <ul className="list-disc list-inside space-y-0.5">
             <li>Layer depths: L₁ = a₁, L₂ = a₂ − a₁, L₃ = a₃ − a₂</li>
             <li>
-              Layer resistances (updated – green cells):{" "}
+              Layer resistances:{" "}
               <span className="font-semibold">
                 RL₁ = R₁,&nbsp;
                 RL₂ = (R₁·R₂)/(R₁ − R₂),&nbsp;
-                RL₃ = (R₃·R₃)/(R₂ − R₃)
+                RL₃ = (R₂·R₃)/(R₂ − R₃) →
               </span>
             </li>
             <li>

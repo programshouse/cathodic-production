@@ -1,4 +1,3 @@
-// /src/pages/barnes-layer/BarnesLayerPage.jsx
 import React from "react";
 import CalculatorPanel from "../../components/ui/CalculatorPanel";
 import ModuleCard from "../../components/ui/ModuleCard";
@@ -153,7 +152,7 @@ export default class BarnesLayerPage extends React.Component {
                 <>
                   RL₁ = R₁,&nbsp;
                   RL₂ = (R₁·R₂)/(R₁ − R₂),&nbsp;
-                  RL₃ = (R₃·R₃)/(R₂ − R₃);&nbsp;
+                  RL₃ = (R₂·R₃)/(R₂ − R₃);&nbsp;
                   ρLᵢ = 2π·a₁·RLᵢ
                 </>
               }
@@ -171,8 +170,7 @@ export default class BarnesLayerPage extends React.Component {
               }
             >
               <div className="text-sm text-gray-700 dark:text-gray-300">
-                Three-layer Barnes method using updated RL₂ / RL₃ equations
-                (highlighted in green in the design notes).
+                Three-layer Barnes method using updated RL₂ / RL₃ equations.
               </div>
             </ModuleCard>
 

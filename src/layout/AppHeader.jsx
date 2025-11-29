@@ -48,18 +48,18 @@ const AppHeader = () => {
           </div>
 
           {/* CENTER: Contact info (desktop) */}
-          <div className="hidden flex-1 items-center justify-center gap-8 text-[11px] text-slate-600 dark:text-slate-300 md:flex md:pl-10 lg:pl-20 xl:pl-28">
+          <div className="hidden flex-1 items-center justify-center gap-8 text-[13px] text-slate-600 dark:text-slate-300 md:flex md:pl-10 lg:pl-20 xl:pl-28">
             {/* Phones */}
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center  text-amber-500">
-                <FiPhone className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center text-amber-500">
+                <FiPhone className="h-5 w-5" />
               </span>
-              <div className="flex flex-col leading-tight">
+              <div className="flex flex-col space-y-1.5 leading-tight">
                 {PHONES.map((ph) => (
                   <a
                     key={ph}
                     href={`tel:${ph.replace(/[^\d+]/g, "")}`}
-                    className="text-[11px] text-sky-700 hover:underline dark:text-sky-300"
+                    className="text-[13px] text-sky-700 hover:underline dark:text-sky-300"
                   >
                     {ph}
                   </a>
@@ -70,16 +70,16 @@ const AppHeader = () => {
             <span className="h-7 w-px bg-gray-200 dark:bg-slate-700" />
 
             {/* Emails */}
-            <div className="flex items-start gap-2">
-              <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center  text-amber-500">
-                <FiMail className="h-4 w-4" />
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-6 w-6 items-center justify-center text-amber-500">
+                <FiMail className="h-5 w-5" />
               </span>
-              <div className="flex flex-col leading-tight">
+              <div className="flex flex-col space-y-1.5 leading-tight">
                 {EMAILS.map((em) => (
                   <a
                     key={em}
                     href={`mailto:${em}`}
-                    className="truncate text-[11px] text-sky-700 hover:underline dark:text-sky-300"
+                    className="truncate text-[13px] text-sky-700 hover:underline dark:text-sky-300"
                   >
                     {em}
                   </a>
@@ -91,29 +91,29 @@ const AppHeader = () => {
 
             {/* LinkedIn */}
             <div className="flex items-center gap-2">
-              <span className="inline-flex h-6 w-6 items-center justify-center  text-amber-500">
-                <FaLinkedinIn className="h-4 w-4" />
+              <span className="inline-flex h-6 w-6 items-center justify-center text-amber-500">
+                <FaLinkedinIn className="h-5 w-5" />
               </span>
               <a
                 href={LINKEDIN}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="text-[11px] font-medium text-sky-800 hover:underline dark:text-sky-300"
+                className="text-[13px] font-medium text-sky-800 hover:underline dark:text-sky-300"
               >
-                View Profile
+                View LinkedIn Profile
               </a>
             </div>
           </div>
 
           {/* CENTER (mobile condensed contact) */}
-          <div className="flex flex-1 items-center justify-center gap-3 text-[11px] text-slate-600 dark:text-slate-300 md:hidden">
+          <div className="flex flex-1 items-center justify-center gap-3 text-[13px] text-slate-600 dark:text-slate-300 md:hidden">
             <div className="flex items-center gap-1">
-              <span className="inline-flex h-5 w-5 items-center justify-center  text-amber-500">
-                <FiPhone className="h-4 w-4" />
+              <span className="inline-flex h-5 w-5 items-center justify-center text-amber-500">
+                <FiPhone className="h-5 w-5" />
               </span>
-              <a
+            <a
                 href={`tel:${PHONES[0].replace(/[^\d+]/g, "")}`}
-                className="text-[11px] text-sky-700 hover:underline dark:text-sky-300"
+                className="text-[13px] text-sky-700 hover:underline dark:text-sky-300"
               >
                 {PHONES[0]}
               </a>
@@ -122,12 +122,12 @@ const AppHeader = () => {
             <span className="h-4 w-px bg-gray-200 dark:bg-slate-700" />
 
             <div className="flex items-center gap-1">
-              <span className="inline-flex h-5 w-5 items-center justify-center  text-amber-500">
+              <span className="inline-flex h-5 w-5 items-center justify-center text-amber-500">
                 <FiMail className="h-4 w-4" />
               </span>
               <a
                 href={`mailto:${EMAILS[0]}`}
-                className="max-w-[130px] truncate text-[11px] text-sky-700 hover:underline dark:text-sky-300"
+                className="max-w-[150px] truncate text-[13px] text-sky-700 hover:underline dark:text-sky-300"
               >
                 {EMAILS[0]}
               </a>

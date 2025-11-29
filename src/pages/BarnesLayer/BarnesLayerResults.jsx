@@ -104,7 +104,11 @@ export default function BarnesLayerResults({ results }) {
                 const depth = toNumber(l.L ?? l.depth_m ?? 0);
                 const RL = toNumber(l.RL ?? l.resistance_ohm ?? l.R ?? 0);
                 const rho =
-                  l.resistivity_ohm_m ?? l.rho_ohm_m ?? l.resistivity ?? l.rho ?? 0;
+                  l.resistivity_ohm_m ??
+                  l.rho_ohm_m ??
+                  l.resistivity ??
+                  l.rho ??
+                  0;
 
                 return (
                   <tr

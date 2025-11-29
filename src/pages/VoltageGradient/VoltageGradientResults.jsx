@@ -1,16 +1,5 @@
 import React from "react";
 import ModuleCard from "../../components/ui/ModuleCard";
-import {
-  ResponsiveContainer,
-  LineChart,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Line,
-  Legend,
-  ReferenceLine,
-} from "recharts";
 
 export default function VoltageGradientResults({ results }) {
   if (!results) {
@@ -34,11 +23,8 @@ export default function VoltageGradientResults({ results }) {
   const L_m = inputs?.L_m ?? null;
   const rho_ohm_m = inputs?.rho_ohm_m ?? null;
 
-  const chartData = Array.isArray(data) ? data : [];
-
   return (
     <div className="space-y-4">
-      {/* Key numerical results */}
       <ModuleCard
         title="Key Results"
         subtitle="Voltage rise in earth around the vertical anode"
@@ -100,87 +86,6 @@ export default function VoltageGradientResults({ results }) {
             </div>
           </div>
         </div>
-      </ModuleCard>
-
-      {/* Chart: voltage rise per ampere vs distance (log scale) */}
-      <ModuleCard
-        title="Step 4: Voltage Rise Profile"
-        subtitle="Voltage rise per ampere (V/A) versus distance from anode (log scale)"
-      >
-        <div className="h-72">
-          <ResponsiveContainer>
-            <LineChart
-              data={chartData}
-              margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="x_m"
-                type="number"
-                scale="log"
-                domain={[0.1, 100]}
-                tickFormatter={(v) => v.toFixed(0)}
-                label={{
-                  value: "Distance X (m)",
-                  position: "insideBottomRight",
-                  offset: -2,
-                }}
-              />
-              <YAxis
-                label={{
-                  value: "Voltage rise per ampere Vᵣ / I (V/A)",
-                  angle: -90,
-                  position: "insideLeft",
-                }}
-              />
-              {X_r_m != null && X_r_m !== "" && (
-                <ReferenceLine
-                  x={Number(X_r_m)}
-                  stroke="#ef4444"
-                  strokeDasharray="4 4"
-                  label={`Xᵣ = ${Number(X_r_m).toFixed(1)} m`}
-                />
-              )}
-              <Tooltip
-                formatter={(value, name, entry) => {
-                  if (entry?.dataKey === "Vr_perA") {
-                    return [`${Number(value ?? 0).toFixed(4)} V/A`, "Vᵣ / I"];
-                  }
-                  if (entry?.dataKey === "Vr") {
-                    return [`${Number(value ?? 0).toFixed(3)} V`, "Vᵣ"];
-                  }
-                  return value;
-                }}
-                labelFormatter={(l) => `X = ${Number(l ?? 0).toFixed(2)} m`}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="Vr_perA"
-                name="Voltage rise per ampere Vᵣ / I"
-                stroke="#2563eb"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="Vr"
-                name="Voltage rise Vᵣ (V)"
-                stroke="#a855f7"
-                strokeWidth={1}
-                dot={false}
-                isAnimationActive={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="mt-2 text-xs text-gray-500">
-          The blue curve is Vᵣ / I (V per ampere) as a function of distance.
-          Multiply by the actual current to read voltage directly from the
-          chart. The purple curve shows the absolute voltage Vᵣ for the entered
-          current I.
-        </p>
       </ModuleCard>
     </div>
   );

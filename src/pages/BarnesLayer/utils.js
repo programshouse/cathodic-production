@@ -1,6 +1,6 @@
 // Barnes Layer Resistivity utilities
 // Wenner apparent resistivity: ρ_a = 2 · π · a · R
-// Barnes 3-layer method as per your document/table (with updated green equations).
+// Barnes 3-layer method as per your document/table (with updated equations).
 
 // Units (kept for compatibility with other modules if needed)
 export const UNIT = {
@@ -61,10 +61,10 @@ export function buildSpacingTable({
 //   L2 = a2 − a1
 //   L3 = a3 − a2
 //
-// Step 3: Layer resistances (UPDATED per green cells)
+// Step 3: Layer resistances (UPDATED):
 //   RL1 = R1
 //   RL2 = (R1 R2)/(R1 − R2)
-//   RL3 = (R3 R3)/(R2 − R3)
+//   RL3 = (R2 R3)/(R2 − R3)
 //
 // Step 4: Layer resistivities
 //   ρLᵢ = 2 π a1 RLᵢ
@@ -89,7 +89,7 @@ export function computeBarnesLayers(inputs) {
   // Layer resistances (UPDATED equations)
   const RL1 = R1;
   const RL2 = safeDiv(R1 * R2, R1 - R2);
-  const RL3 = safeDiv(R3 * R3, R2 - R3);
+  const RL3 = safeDiv(R2 * R3, R2 - R3); // ✅ corrected to R2·R3
 
   // Layer resistivities (all using a1, as in the document)
   const rhoL1 = 2 * Math.PI * a1 * RL1;

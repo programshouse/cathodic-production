@@ -8,6 +8,7 @@ import { useLibraryFoldersStore } from "../../stores/useLibraryFoldersStore";
 import { useLibrarySubFoldersStore } from "../../stores/useLibrarySubFoldersStore";
 import Btn from "../../components/ui/Btn";
 import { BsFolder2, BsFolder2Open } from "react-icons/bs";
+import { HiOutlineDocumentText } from "react-icons/hi2";
 
 // small 3-dots icon
 const KebabIcon = () => (
@@ -134,8 +135,49 @@ function FolderTile({
   );
 }
 
+// 🔹 Simple file tile shown in search results
+function FileTile({ file }) {
+  const title =
+    file.title || file.name || file.original_name || `File #${file.id}`;
+  const folderName = file.folder_name || "—";
+
+  const handleOpen = () => {
+    if (file.file_path) {
+      window.open(file.file_path, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleOpen}
+      className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-white shadow-sm border border-gray-200 px-3 py-4 text-center hover:shadow-md hover:bg-gray-50 transition"
+    >
+      <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gray-100 text-brand-600">
+        <HiOutlineDocumentText className="h-8 w-8" />
+      </div>
+      <div className="flex flex-col items-center gap-0.5 mt-1">
+        <span className="max-w-[9rem] truncate text-xs font-medium text-gray-800">
+          {title}
+        </span>
+        <span className="max-w-[9rem] truncate text-[10px] text-gray-400">
+          Folder: {folderName}
+        </span>
+      </div>
+    </button>
+  );
+}
+
 export default function LibraryBrowse() {
-  const { library, loading, error, fetchlibrary } = useLibStore();
+  const {
+    loading,
+    error,
+    fetchlibrary,
+    searchResults,
+    searchLibrary,
+    searchLoading,
+  } = useLibStore();
+
   const { admin, isInitialized } = useAuthStore();
   const {
     libraryFolders,
@@ -150,6 +192,8 @@ export default function LibraryBrowse() {
 
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+
+  const isSearching = query.trim().length > 0;
 
   useEffect(() => {
     fetchlibrary().catch(() => {});
@@ -173,8 +217,22 @@ export default function LibraryBrowse() {
           .map((p) => p.toLowerCase())
           .some((p) => p === "admin" || p === "manage_library")));
 
+  // 🔁 Debounced search when there is a query (file search)
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) return; // no search if empty
+
+    const id = setTimeout(() => {
+      searchLibrary(q).catch(() => {});
+    }, 300);
+
+    return () => clearTimeout(id);
+  }, [query, searchLibrary]);
+
   const filteredFolders = useMemo(() => {
-    if (!query) return libraryFolders || [];
+    if (!libraryFolders) return [];
+    if (!query) return libraryFolders;
+
     const q = query.toLowerCase();
     return (libraryFolders || []).filter((f) =>
       [f.name, f.id]
@@ -215,7 +273,7 @@ export default function LibraryBrowse() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search folder name / id…"
+                placeholder="Search by folder or file name…"
                 className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
@@ -231,11 +289,16 @@ export default function LibraryBrowse() {
               >
                 {loading ? "Refreshing…" : "Refresh"}
               </button>
+              {searchLoading && isSearching && (
+                <span className="text-[11px] text-gray-400 self-center">
+                  Searching…
+                </span>
+              )}
             </div>
           </div>
         </CardBox>
 
-        {/* Folder icon grid */}
+        {/* Main content */}
         <CardBox>
           {error && (
             <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
@@ -243,52 +306,75 @@ export default function LibraryBrowse() {
             </div>
           )}
 
-          {(!filteredFolders || filteredFolders.length === 0) && !loading && (
-            <div className="text-sm text-gray-500">No folders found.</div>
+          {/* 🔹 When searching → show files, not folders */}
+          {isSearching ? (
+            <>
+              {(!searchResults || searchResults.length === 0) && !searchLoading && (
+                <div className="text-sm text-gray-500">
+                  No files match your search.
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+                {(searchResults || []).map((file) => (
+                  <FileTile key={file.id ?? file.file_path} file={file} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {(!filteredFolders || filteredFolders.length === 0) && !loading && (
+                <div className="text-sm text-gray-500">No folders found.</div>
+              )}
+
+              {loading && (
+                <div className="mb-3 text-xs text-gray-500">
+                  Loading folders…
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
+                {filteredFolders.map((folder) => {
+                  const subCount = (librarySubFolders || []).filter(
+                    (sf) => String(sf.folder_id) === String(folder.id)
+                  ).length;
+
+                  const fileCount =
+                    folder.files_count ?? folder.files?.length ?? 0;
+
+                  return (
+                    <FolderTile
+                      key={folder.id}
+                      folder={folder}
+                      subCount={subCount}
+                      fileCount={fileCount}
+                      canManage={canManage}
+                      onOpen={() => navigate(`/library/folder/${folder.id}`)}
+                      onRename={() => {
+                        const next = window.prompt(
+                          "Rename folder:",
+                          folder.name || `Folder #${folder.id}`
+                        );
+                        if (!next || !next.trim()) return;
+                        updateLibraryFolder(folder.id, next.trim()).catch(
+                          () => {}
+                        );
+                      }}
+                      onDelete={() => {
+                        if (
+                          window.confirm(
+                            "Delete this folder and its subfolders/files?"
+                          )
+                        ) {
+                          deleteLibraryFolder(folder.id).catch(() => {});
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </>
           )}
-
-          {loading && (
-            <div className="mb-3 text-xs text-gray-500">Loading folders…</div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
-            {filteredFolders.map((folder) => {
-              const subCount = (librarySubFolders || []).filter(
-                (sf) => String(sf.folder_id) === String(folder.id)
-              ).length;
-
-              const fileCount =
-                folder.files_count ?? folder.files?.length ?? 0;
-
-              return (
-                <FolderTile
-                  key={folder.id}
-                  folder={folder}
-                  subCount={subCount}
-                  fileCount={fileCount}
-                  canManage={canManage}
-                  onOpen={() => navigate(`/library/folder/${folder.id}`)}
-                  onRename={() => {
-                    const next = window.prompt(
-                      "Rename folder:",
-                      folder.name || `Folder #${folder.id}`
-                    );
-                    if (!next || !next.trim()) return;
-                    updateLibraryFolder(folder.id, next.trim()).catch(() => {});
-                  }}
-                  onDelete={() => {
-                    if (
-                      window.confirm(
-                        "Delete this folder and its subfolders/files?"
-                      )
-                    ) {
-                      deleteLibraryFolder(folder.id).catch(() => {});
-                    }
-                  }}
-                />
-              );
-            })}
-          </div>
         </CardBox>
       </div>
     </div>

@@ -25,28 +25,24 @@ export default function AuthLayout({ children }) {
 {/* RIGHT SECTION */}
 <div className="hidden lg:flex w-1/2 bg-[#071A33] relative items-center justify-center">
 
-  {/* Grid BG */}
+  
   <div className="absolute inset-0 opacity-30">
     <GridShape />
   </div>
 
-  {/* White circle */}
   <div
     className="relative z-10 bg-white rounded-4xl shadow-2xl flex items-center justify-center"
     style={{ width: "480px", height: "480px" }}
   >
 
-    {/* Insert full design image INSIDE the circle */}
     <img
-      src="/images/logo/image2.png"   // ← حط هنا الصورة اللي بعتها
+      src="/images/logo/image2.png"   
       alt="CP Design"
       className=" object-contain rounded-full"
     />
 
   </div>
 </div>
-
-
     </div>
   );
 }

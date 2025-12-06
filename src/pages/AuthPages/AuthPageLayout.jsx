@@ -4,45 +4,49 @@ import { Link } from "react-router-dom";
 
 export default function AuthLayout({ children }) {
   return (
-    <div className="relative z-1 bg-white p-6 dark:bg-gray-900 sm:p-0">
-      <div className="relative flex h-screen w-full flex-col justify-center lg:flex-row dark:bg-gray-900 sm:p-0">
-        {/* LEFT: Logo + Form */}
-        <div className="flex w-full flex-col items-center justify-center lg:w-1/2">
-          <div className="mx-auto w-full max-w-md px-4 sm:px-6">
-            {/* Old logo on top of form */}
-            <Link to="/" className="mb-3 block text-center">
-              <img
-                width={350}
-                height={80}
-                src="/images/logo/logoos.jpg"
-                style={{ borderRadius: "50%", objectFit: "cover" }}
-                alt="logoos"
-              />
-            </Link>
+    <div className="h-screen w-full flex overflow-hidden bg-white dark:bg-gray-900">
 
-            {/* Form content */}
-            <div>{children}</div>
-          </div>
-        </div>
+      {/* LEFT SECTION */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-8">
 
-        {/* RIGHT: Illustration with personal logo */}
-        <div className="hidden h-full w-full items-center bg-brand-950 lg:grid lg:w-1/2 dark:bg-white/5">
-          <div className="relative z-1 flex items-center justify-center">
-            <GridShape />
-            <div className="flex max-w-sm flex-col items-center">
-              <Link to="/" className="mb-4 block">
-                <img
-                  width={460}
-                  height={130}
-                  src="/images/logo/personallogo.png"
-                  style={{ borderRadius: "50%", objectFit: "cover" }}
-                  alt="personal logo"
-                />
-              </Link>
-            </div>
-          </div>
-        </div>
+        {/* Logo */}
+        <Link to="/" className="mb-10 block text-center">
+          <img
+            src="/images/logo/logoos.jpg"
+            alt="logo"
+            className="w-[340px] h-[340px] object-cover rounded-full mx-auto"
+          />
+        </Link>
+
+        {/* Form */}
+        <div className="w-full max-w-md">{children}</div>
       </div>
+
+{/* RIGHT SECTION */}
+<div className="hidden lg:flex w-1/2 bg-[#071A33] relative items-center justify-center">
+
+  {/* Grid BG */}
+  <div className="absolute inset-0 opacity-30">
+    <GridShape />
+  </div>
+
+  {/* White circle */}
+  <div
+    className="relative z-10 bg-white rounded-4xl shadow-2xl flex items-center justify-center"
+    style={{ width: "480px", height: "480px" }}
+  >
+
+    {/* Insert full design image INSIDE the circle */}
+    <img
+      src="/images/logo/image2.png"   // ← حط هنا الصورة اللي بعتها
+      alt="CP Design"
+      className=" object-contain rounded-full"
+    />
+
+  </div>
+</div>
+
+
     </div>
   );
 }

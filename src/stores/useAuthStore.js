@@ -80,13 +80,9 @@ export const useAuthStore = create((set) => ({
 
   // ---- REGISTER ----
   register: async (payload) => {
-    // payload may include: { name, email, password, password_confirmation, ... }
     try {
       set({ loading: true, error: null });
-
       const res = await api.post("/register", payload);
-
-      // Be defensive about the response shape (same pattern as login)
       const data = res?.data || {};
       const access_token =
         data.access_token ||
@@ -110,8 +106,6 @@ export const useAuthStore = create((set) => ({
         toast.error(msg);
         throw new Error(msg);
       }
-
-      // Persist (24h session, same as login)
 
       localStorage.setItem("access_token", access_token);
       if (admin) localStorage.setItem("admin", JSON.stringify(admin));

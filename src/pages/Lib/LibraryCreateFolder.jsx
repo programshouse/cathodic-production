@@ -30,8 +30,24 @@ export default function LibraryCreateFolder() {
         description="Step 1 of 3 – choose an existing folder or create a new one."
       />
 
+          <div className="pt-4 border-t mt-2">
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">Create new folder</h2>
+            <div className="flex flex-col md:flex-row gap-2">
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="New folder name"
+                className="flex-1 border rounded-xl p-2 text-sm"
+              />
+              <Btn onClick={handleCreate} size="sm">
+                Save & Continue
+              </Btn>
+            </div>
+          </div>
       <CardBox>
         <div className="space-y-4">
+
           <div>
             <h2 className="text-sm font-semibold text-gray-700 mb-2">Existing folders</h2>
             <div className="space-y-2">
@@ -55,21 +71,6 @@ export default function LibraryCreateFolder() {
             </div>
           </div>
 
-          <div className="pt-4 border-t mt-2">
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Create new folder</h2>
-            <div className="flex flex-col md:flex-row gap-2">
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="New folder name"
-                className="flex-1 border rounded-xl p-2 text-sm"
-              />
-              <Btn onClick={handleCreate} size="sm">
-                Save & Continue
-              </Btn>
-            </div>
-          </div>
         </div>
       </CardBox>
     </div>

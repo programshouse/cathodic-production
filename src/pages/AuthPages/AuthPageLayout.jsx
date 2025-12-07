@@ -32,7 +32,7 @@ export default function AuthLayout({ children }) {
 
   <div
     className="relative z-10 bg-white rounded-4xl shadow-2xl flex items-center justify-center"
-    style={{ width: "480px", height: "480px" }}
+    style={{ width: "650px", height: "650px" }}
   >
 
     <img

@@ -14,7 +14,7 @@ export default function AuthLayout({ children }) {
           <img
             src="/images/logo/logoos.jpg"
             alt="logo"
-            className="w-[400px] h-[400px] object-cover  mx-auto"
+            className="w-[250px] h-[250px] object-cover  mx-auto"
           />
         </Link>
 

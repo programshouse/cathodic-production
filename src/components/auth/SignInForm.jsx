@@ -35,8 +35,8 @@ export default function SignInForm() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="mx-auto w-full max-w-md pt-10" />
-      <div className="mx-auto flex w-full max-w-md flex-1 items-center justify-center">
+<div className="mx-auto flex w-full max-w-md flex-1 items-start justify-center ">
+
         <div className="w-full">
           <div className="mb-6 sm:mb-8">
             <h1 className="text-title-sm sm:text-title-md mb-2 font-semibold text-gray-800 dark:text-white/90">
@@ -56,7 +56,6 @@ export default function SignInForm() {
               setStatus(undefined);
               try {
                 await login(values.email.trim(), values.password);
-                // navigation happens in the effect once token exists
               } catch (e) {
                 const serverMsg =
                   e?.response?.data?.error || e?.response?.data?.message;

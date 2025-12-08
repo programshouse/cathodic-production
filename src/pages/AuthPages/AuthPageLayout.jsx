@@ -7,14 +7,14 @@ export default function AuthLayout({ children }) {
     <div className="h-screen w-full flex overflow-hidden bg-white dark:bg-gray-900">
 
       {/* LEFT SECTION */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-8">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-2">
 
         {/* Logo */}
-        <Link to="/" className="mb-10 block text-center">
+        <Link to="/" className=" block text-center">
           <img
             src="/images/logo/logoos.jpg"
             alt="logo"
-            className="w-[340px] h-[340px] object-cover rounded-full mx-auto"
+            className="w-[400px] h-[400px] object-cover  mx-auto"
           />
         </Link>
 

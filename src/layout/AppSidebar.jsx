@@ -125,7 +125,7 @@ const AppSidebar = () => {
               <>
                 <img
                   className="block dark:hidden rounded-full sm:mx-0 mx-auto"
-                  src="/images/logo/logoos.jpg"
+                  src="/images/logo/newlogo.png"
                   alt="logoos"
                   width={140}
                   height={50}
@@ -141,9 +141,9 @@ const AppSidebar = () => {
             ) : (
               <img
                 className="align-middle rounded-full sm:mx-0 mx-auto"
-                src="/images/logo/logoos.jpg"
+                src="/images/logo/newlogo.png"
                 alt="logoos"
-                width={150}
+                width={100}
                 height={120}
               />
             )}
